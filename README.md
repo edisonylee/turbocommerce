@@ -6,8 +6,6 @@ A WASM-native, pure Rust e-commerce framework built on [Leptos](https://leptos.d
 
 TurboCommerce is an experimental framework for building e-commerce storefronts that run entirely on WebAssembly. It targets edge compute platforms like [Fermyon Cloud](https://www.fermyon.com/cloud) with sub-millisecond cold starts.
 
-**This is not a Vercel competitor.** TurboCommerce is a framework (like Next.js), not a hosting platform. It runs on Fermyon Cloud, which is the hosting platform.
-
 ## Architecture
 
 ```
