@@ -1,0 +1,25 @@
+[package]
+name = "turbo-commerce"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "E-commerce domain types and logic for TurboCommerce"
+
+[dependencies]
+# Internal crates
+turbo-db = { path = "../turbo-db" }
+turbo-cache = { path = "../turbo-cache" }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+thiserror = "2"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+spin-sdk = "3"
+
+[features]
+default = []

@@ -1,0 +1,16 @@
+[package]
+name = "turbo-auth"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+turbo-cache = { path = "../turbo-cache" }
+turbo-commerce = { path = "../turbo-commerce" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+spin-sdk = "3"
+
+[dev-dependencies]
