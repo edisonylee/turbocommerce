@@ -1,16 +1,75 @@
-[package]
-name = "hello-wasm"
-authors = ["edisonylee <edisonydlee@gmail.com>"]
-description = "first stepping stone"
+[workspace]
+resolver = "2"
+members = [
+    # Legacy edge-* crates
+    "crates/edge-core",
+    "crates/edge-streaming",
+    "crates/edge-data",
+    "crates/edge-executor",
+    "crates/edge-cache",
+    "crates/edge-observability",
+    "crates/edge-security",
+    "crates/edge-macros",
+    "crates/edge-sdk",
+    # New turbo-* crates (TurboCommerce framework)
+    "crates/turbo-macros",
+    "crates/turbo-router",
+    "crates/turbo-core",
+    "crates/turbo-sdk",
+    # Tools
+    "tools/edge-cli",
+    # Workloads
+    "workloads/hello-wasm",
+    "workloads/ecommerce-pdp",
+    "workloads/search-results",
+    "workloads/marketing-landing",
+    # Examples (turbo-storefront is standalone with its own workspace)
+]
+
+[workspace.package]
 version = "0.1.0"
-rust-version = "1.78"
 edition = "2021"
+rust-version = "1.78"
+authors = ["edisonylee <edisonydlee@gmail.com>"]
+license = "MIT"
 
-[lib]
-crate-type = ["cdylib"]
+[workspace.dependencies]
+# Internal crates (legacy)
+edge-core = { path = "crates/edge-core" }
+edge-streaming = { path = "crates/edge-streaming" }
+edge-data = { path = "crates/edge-data" }
+edge-executor = { path = "crates/edge-executor" }
+edge-cache = { path = "crates/edge-cache" }
+edge-observability = { path = "crates/edge-observability" }
+edge-security = { path = "crates/edge-security" }
+edge-macros = { path = "crates/edge-macros" }
+edge-sdk = { path = "crates/edge-sdk" }
 
-[dependencies]
+# TurboCommerce framework crates
+turbo-macros = { path = "crates/turbo-macros" }
+turbo-router = { path = "crates/turbo-router" }
+turbo-core = { path = "crates/turbo-core" }
+turbo-sdk = { path = "crates/turbo-sdk" }
+
+# Leptos ecosystem
+leptos = "0.7"
+leptos_meta = "0.7"
+leptos_router = "0.7"
+
+# External dependencies
 anyhow = "1"
 spin-sdk = "5.0.0"
-
-[workspace]
+futures = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+async-trait = "0.1"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+http = "1"
+clap = { version = "4", features = ["derive"] }
+console = "0.15"
+indicatif = "0.17"
+dialoguer = "0.11"
+toml = "0.8"
+chrono = { version = "0.4", features = ["serde"] }

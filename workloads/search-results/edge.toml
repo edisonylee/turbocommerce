@@ -1,0 +1,41 @@
+# Edge Platform Configuration for Search Results Page
+
+[workload]
+name = "search-results"
+version = "0.1.0"
+
+[cache]
+# Route-level cache varies by query and page
+scope = "public"
+ttl = "5m"
+vary = ["query", "page", "sort"]
+stale_while_revalidate = "1m"
+
+[sections.search-header]
+cache = { ttl = "5m", vary = ["query"] }
+timeout = "500ms"
+fallback = "skeleton"
+
+[sections.facets]
+cache = { ttl = "10m", vary = ["query", "category"] }
+timeout = "1s"
+fallback = "skeleton"
+
+[sections.results]
+cache = { ttl = "5m", vary = ["query", "page", "sort"] }
+timeout = "2s"
+fallback = "error"
+
+[sections.sponsored]
+cache = { ttl = "1m", vary = ["query"] }
+timeout = "500ms"
+fallback = "skip"
+
+[dependencies.search]
+timeout = "2s"
+retries = 1
+circuit_breaker = { threshold = 5, reset_after = "30s" }
+
+[dependencies.ads]
+timeout = "500ms"
+retries = 0

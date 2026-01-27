@@ -1,0 +1,18 @@
+[package]
+name = "edge-sdk"
+description = "Public SDK for the edge streaming SSR platform"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+edge-core.workspace = true
+edge-streaming.workspace = true
+edge-data.workspace = true
+edge-executor.workspace = true
+edge-cache.workspace = true
+edge-observability.workspace = true
+edge-security.workspace = true
+edge-macros.workspace = true

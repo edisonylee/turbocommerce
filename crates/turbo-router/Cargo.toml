@@ -1,0 +1,11 @@
+[package]
+name = "turbo-router"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "File-based routing for TurboCommerce framework"
+
+[dependencies]
+leptos = "0.7"
+leptos_router = "0.7"

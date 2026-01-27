@@ -1,0 +1,43 @@
+[package]
+name = "turbo-storefront"
+version = "0.1.0"
+edition = "2021"
+description = "Example TurboCommerce storefront"
+
+[lib]
+crate-type = ["cdylib"]
+
+# Make this a standalone workspace (required for cargo-leptos)
+[workspace]
+
+[dependencies]
+console_error_panic_hook = "0.1"
+leptos = { version = "0.7.0" }
+leptos_meta = { version = "0.7.0" }
+leptos_router = { version = "0.7.0" }
+leptos_wasi = { version = "0.1.3", optional = true }
+spin-sdk = { version = "3", optional = true }
+# Pin exact versions for WASM compatibility
+wasi = { version = "=0.13.2", optional = true }
+wasm-bindgen = { version = "=0.2.96", optional = true }
+
+[features]
+csr = ["leptos/csr"]
+hydrate = ["leptos/hydrate", "dep:wasm-bindgen"]
+ssr = [
+    "leptos/ssr",
+    "leptos_meta/ssr",
+    "leptos_router/ssr",
+    "leptos/spin",
+    "dep:spin-sdk",
+    "dep:leptos_wasi",
+    "dep:wasi",
+]
+
+[package.metadata.leptos]
+output-name = "turbo_storefront"
+style-file = "style/main.css"
+bin-features = ["ssr"]
+bin-default-features = false
+lib-features = ["hydrate"]
+lib-default-features = false

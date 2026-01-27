@@ -1,0 +1,17 @@
+[package]
+name = "edge-executor"
+description = "Stream-as-ready section execution"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+edge-core.workspace = true
+edge-streaming.workspace = true
+edge-data.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+futures.workspace = true

@@ -1,0 +1,28 @@
+[package]
+name = "turbo-sdk"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "TurboCommerce SDK - The first WASM-native Rust web framework for e-commerce"
+
+[dependencies]
+# TurboCommerce crates
+turbo-core = { path = "../turbo-core" }
+turbo-router = { path = "../turbo-router" }
+turbo-macros = { path = "../turbo-macros" }
+
+# Leptos (re-exported through turbo-core)
+leptos = "0.7"
+leptos_meta = "0.7"
+leptos_router = "0.7"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+leptos_wasi = { version = "0.1.3", optional = true }
+spin-sdk = { version = "3", optional = true }
+wasi = { version = "0.13", optional = true }
+
+[features]
+default = []
+ssr = ["turbo-core/ssr", "dep:leptos_wasi", "dep:spin-sdk", "dep:wasi"]
+hydrate = ["turbo-core/hydrate", "leptos/hydrate"]

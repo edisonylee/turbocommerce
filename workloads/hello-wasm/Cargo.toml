@@ -1,0 +1,22 @@
+[package]
+name = "hello-wasm"
+description = "Reference workload demonstrating parallel fetch streaming"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Platform SDK
+edge-sdk.workspace = true
+
+# Required for Spin integration
+anyhow.workspace = true
+spin-sdk.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true

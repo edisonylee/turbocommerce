@@ -1,0 +1,19 @@
+[package]
+name = "marketing-landing"
+description = "Marketing Landing Page - Reference workload"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+edge-sdk.workspace = true
+spin-sdk.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+futures.workspace = true

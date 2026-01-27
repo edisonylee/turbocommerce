@@ -1,0 +1,26 @@
+spin_manifest_version = 2
+
+[application]
+name = "turbo-storefront"
+version = "0.1.0"
+authors = ["TurboCommerce"]
+description = "Example TurboCommerce storefront"
+
+[[trigger.http]]
+route = "/..."
+component = "turbo-storefront"
+
+[component.turbo-storefront]
+source = "target/wasm32-wasip1/release/turbo_storefront.wasm"
+allowed_outbound_hosts = []
+[component.turbo-storefront.build]
+command = "cargo leptos build --release && LEPTOS_OUTPUT_NAME=turbo_storefront cargo build --lib --target wasm32-wasip1 --release --no-default-features --features ssr"
+watch = ["src/**/*.rs", "Cargo.toml"]
+
+[[trigger.http]]
+route = "/pkg/..."
+component = "turbo-storefront-pkg"
+
+[component.turbo-storefront-pkg]
+source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.1.0/spin_static_fs.wasm", digest = "sha256:96c76d9af86420b39eb6cd7be5550e3cb5d4cc4de572ce0fd1f6a29471536cb4" }
+files = [{ source = "target/site/pkg", destination = "/" }]
