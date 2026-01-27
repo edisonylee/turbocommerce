@@ -11,6 +11,8 @@ description = "TurboCommerce SDK - The first WASM-native Rust web framework for 
 turbo-core = { path = "../turbo-core" }
 turbo-router = { path = "../turbo-router" }
 turbo-macros = { path = "../turbo-macros" }
+turbo-commerce = { path = "../turbo-commerce" }
+turbo-auth = { path = "../turbo-auth" }
 
 # Leptos (re-exported through turbo-core)
 leptos = "0.7"

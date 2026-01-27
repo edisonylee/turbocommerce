@@ -4,7 +4,11 @@ spin_manifest_version = 2
 name = "turbo-storefront"
 version = "0.1.0"
 authors = ["TurboCommerce"]
-description = "Example TurboCommerce storefront"
+description = "Example TurboCommerce storefront with data layer"
+
+# Variables for configuration
+[variables]
+db_name = { default = "default" }
 
 [[trigger.http]]
 route = "/..."
@@ -13,6 +17,11 @@ component = "turbo-storefront"
 [component.turbo-storefront]
 source = "target/wasm32-wasip1/release/turbo_storefront.wasm"
 allowed_outbound_hosts = []
+# SQLite database access
+sqlite_databases = ["default"]
+# Key-Value store for sessions and cart
+key_value_stores = ["default"]
+
 [component.turbo-storefront.build]
 command = "cargo leptos build --release && LEPTOS_OUTPUT_NAME=turbo_storefront cargo build --lib --target wasm32-wasip1 --release --no-default-features --features ssr"
 watch = ["src/**/*.rs", "Cargo.toml"]

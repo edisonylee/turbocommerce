@@ -20,6 +20,14 @@ spin-sdk = { version = "3", optional = true }
 # Pin exact versions for WASM compatibility
 wasi = { version = "=0.13.2", optional = true }
 wasm-bindgen = { version = "=0.2.96", optional = true }
+# Data layer crates
+turbo-db = { path = "../../crates/turbo-db", optional = true }
+turbo-cache = { path = "../../crates/turbo-cache", optional = true }
+# Commerce layer crates
+turbo-commerce = { path = "../../crates/turbo-commerce", optional = true }
+turbo-auth = { path = "../../crates/turbo-auth", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [features]
 csr = ["leptos/csr"]
@@ -32,6 +40,10 @@ ssr = [
     "dep:spin-sdk",
     "dep:leptos_wasi",
     "dep:wasi",
+    "dep:turbo-db",
+    "dep:turbo-cache",
+    "dep:turbo-commerce",
+    "dep:turbo-auth",
 ]
 
 [package.metadata.leptos]

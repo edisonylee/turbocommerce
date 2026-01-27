@@ -1949,6 +1949,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "turbo-auth"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spin-sdk",
+ "thiserror 2.0.18",
+ "turbo-cache",
+ "turbo-commerce",
+]
+
+[[package]]
+name = "turbo-cache"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spin-sdk",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "turbo-commerce"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spin-sdk",
+ "thiserror 2.0.18",
+ "turbo-cache",
+ "turbo-db",
+]
+
+[[package]]
+name = "turbo-db"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spin-sdk",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "turbo-storefront"
 version = "0.1.0"
 dependencies = [
@@ -1957,7 +2001,13 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "leptos_wasi",
+ "serde",
+ "serde_json",
  "spin-sdk",
+ "turbo-auth",
+ "turbo-cache",
+ "turbo-commerce",
+ "turbo-db",
  "wasi 0.13.2+wasi-0.2.1",
  "wasm-bindgen",
 ]

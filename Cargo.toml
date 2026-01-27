@@ -1,29 +1,18 @@
 [workspace]
 resolver = "2"
 members = [
-    # Legacy edge-* crates
-    "crates/edge-core",
-    "crates/edge-streaming",
-    "crates/edge-data",
-    "crates/edge-executor",
-    "crates/edge-cache",
-    "crates/edge-observability",
-    "crates/edge-security",
-    "crates/edge-macros",
-    "crates/edge-sdk",
-    # New turbo-* crates (TurboCommerce framework)
+    # TurboCommerce framework crates
     "crates/turbo-macros",
     "crates/turbo-router",
     "crates/turbo-core",
     "crates/turbo-sdk",
-    # Tools
-    "tools/edge-cli",
-    # Workloads
-    "workloads/hello-wasm",
-    "workloads/ecommerce-pdp",
-    "workloads/search-results",
-    "workloads/marketing-landing",
-    # Examples (turbo-storefront is standalone with its own workspace)
+    # Data layer crates
+    "crates/turbo-cache",
+    "crates/turbo-db",
+    "crates/turbo-data",
+    # Commerce layer crates
+    "crates/turbo-commerce",
+    "crates/turbo-auth",
 ]
 
 [workspace.package]
@@ -34,22 +23,18 @@ authors = ["edisonylee <edisonydlee@gmail.com>"]
 license = "MIT"
 
 [workspace.dependencies]
-# Internal crates (legacy)
-edge-core = { path = "crates/edge-core" }
-edge-streaming = { path = "crates/edge-streaming" }
-edge-data = { path = "crates/edge-data" }
-edge-executor = { path = "crates/edge-executor" }
-edge-cache = { path = "crates/edge-cache" }
-edge-observability = { path = "crates/edge-observability" }
-edge-security = { path = "crates/edge-security" }
-edge-macros = { path = "crates/edge-macros" }
-edge-sdk = { path = "crates/edge-sdk" }
-
 # TurboCommerce framework crates
 turbo-macros = { path = "crates/turbo-macros" }
 turbo-router = { path = "crates/turbo-router" }
 turbo-core = { path = "crates/turbo-core" }
 turbo-sdk = { path = "crates/turbo-sdk" }
+# Data layer crates
+turbo-cache = { path = "crates/turbo-cache" }
+turbo-db = { path = "crates/turbo-db" }
+turbo-data = { path = "crates/turbo-data" }
+# Commerce layer crates
+turbo-commerce = { path = "crates/turbo-commerce" }
+turbo-auth = { path = "crates/turbo-auth" }
 
 # Leptos ecosystem
 leptos = "0.7"

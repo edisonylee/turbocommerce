@@ -11,7 +11,7 @@ use leptos_wasi::{
 use wasi::exports::http::incoming_handler::Guest;
 use wasi::http::proxy::export;
 
-use crate::app::{shell, App, GetProducts, GetProduct};
+use crate::app::{shell, App, GetProducts, GetProduct, GetCart, AddToCart, ClearCart};
 
 struct TurboServer;
 
@@ -43,6 +43,9 @@ async fn handle_request(
         // Register all server functions
         .with_server_fn::<GetProducts>()
         .with_server_fn::<GetProduct>()
+        .with_server_fn::<GetCart>()
+        .with_server_fn::<AddToCart>()
+        .with_server_fn::<ClearCart>()
         // Generate routes from App
         .generate_routes(App)
         // Handle with shell

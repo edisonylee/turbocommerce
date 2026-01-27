@@ -61,6 +61,8 @@ pub mod prelude;
 pub use turbo_core;
 pub use turbo_router;
 pub use turbo_macros;
+pub use turbo_commerce;
+pub use turbo_auth;
 
 // Re-export Leptos essentials at the top level for convenience
 pub use leptos::{view, IntoView};
