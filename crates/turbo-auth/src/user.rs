@@ -253,6 +253,7 @@ impl UserCredentials {
 }
 
 /// User profile data (public-facing).
+#[allow(dead_code)] // Public API for library users
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserProfile {
     /// User ID.
@@ -273,6 +274,7 @@ pub struct UserProfile {
     pub last_login_at: Option<i64>,
 }
 
+#[allow(dead_code)] // Public API for library users
 impl UserProfile {
     /// Create profile from user.
     pub fn from_user(user: &User, created_at: i64, last_login_at: Option<i64>) -> Option<Self> {

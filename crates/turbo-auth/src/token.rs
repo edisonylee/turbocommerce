@@ -159,6 +159,7 @@ impl AuthToken {
 }
 
 /// Token validation result.
+#[allow(dead_code)] // Public API for library users
 #[derive(Debug, Clone)]
 pub struct TokenValidation {
     /// The validated token.

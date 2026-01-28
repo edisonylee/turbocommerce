@@ -34,7 +34,9 @@ impl Method {
 /// A builder for constructing HTTP requests.
 #[derive(Debug, Clone)]
 pub struct RequestBuilder {
+    #[allow(dead_code)] // Used in wasm32 target
     pub(crate) method: Method,
+    #[allow(dead_code)] // Used in wasm32 target
     pub(crate) url: String,
     pub(crate) headers: HashMap<String, String>,
     pub(crate) body: Option<Vec<u8>>,

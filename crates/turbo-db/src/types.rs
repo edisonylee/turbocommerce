@@ -1,7 +1,7 @@
 //! Database value types and conversions.
 
 use crate::DbError;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
 /// A database value that can be used as a parameter or result.
@@ -237,21 +237,19 @@ fn value_to_json(value: &Value) -> serde_json::Value {
             String::from_utf8(b.clone())
                 .map(serde_json::Value::String)
                 .unwrap_or_else(|_| {
-                    use base64::Engine;
                     serde_json::Value::String(base64::engine::general_purpose::STANDARD.encode(b))
                 })
         }
     }
 }
 
-// Base64 encoding for blobs (minimal implementation)
+// Base64 encoding for blobs (minimal implementation for WASM compatibility)
 mod base64 {
     pub mod engine {
         pub mod general_purpose {
             pub struct Standard;
             impl Standard {
                 pub fn encode(&self, data: &[u8]) -> String {
-                    // Simple base64 encoding
                     const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
                     let mut result = String::new();
                     for chunk in data.chunks(3) {
@@ -276,15 +274,6 @@ mod base64 {
                 }
             }
             pub static STANDARD: Standard = Standard;
-        }
-    }
-    pub use engine::general_purpose::STANDARD;
-    pub trait Engine {
-        fn encode(&self, data: &[u8]) -> String;
-    }
-    impl Engine for engine::general_purpose::Standard {
-        fn encode(&self, data: &[u8]) -> String {
-            self.encode(data)
         }
     }
 }

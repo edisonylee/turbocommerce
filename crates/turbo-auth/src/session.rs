@@ -197,6 +197,7 @@ impl AuthSession {
 }
 
 /// Session configuration.
+#[allow(dead_code)] // Public API for library users
 #[derive(Debug, Clone)]
 pub struct SessionConfig {
     /// Session duration in seconds.
