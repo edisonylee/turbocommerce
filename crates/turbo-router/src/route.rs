@@ -143,13 +143,16 @@ mod tests {
 
         let routes = registry.routes();
 
-        // Root should be first (highest priority)
+        // Root should be first (highest priority = 100)
         assert_eq!(routes[0].path, "/");
-        // Static paths before dynamic
+        // Longer paths have higher priority:
+        // /product/:id/reviews = 10 + 5 + 10 = 25
         assert_eq!(routes[1].path, "/product/:id/reviews");
-        assert_eq!(routes[2].path, "/product");
-        assert_eq!(routes[3].path, "/product/:id");
-        // Wildcard last
+        // /product/:id = 10 + 5 = 15
+        assert_eq!(routes[2].path, "/product/:id");
+        // /product = 10
+        assert_eq!(routes[3].path, "/product");
+        // Wildcard last (priority = 1)
         assert_eq!(routes[4].path, "/*any");
     }
 
