@@ -142,14 +142,34 @@ impl Money {
         self.amount_cents < 0
     }
 
+    /// Get the absolute value. Returns None if amount is i64::MIN (cannot be negated).
+    pub fn try_abs(&self) -> Option<Self> {
+        self.amount_cents
+            .checked_abs()
+            .map(|amount| Self::new(amount, self.currency))
+    }
+
     /// Get the absolute value.
+    ///
+    /// # Panics
+    /// Panics if amount is i64::MIN.
     pub fn abs(&self) -> Self {
-        Self::new(self.amount_cents.abs(), self.currency)
+        self.try_abs().expect("Cannot take absolute value of i64::MIN")
+    }
+
+    /// Negate the amount. Returns None if amount is i64::MIN.
+    pub fn try_negate(&self) -> Option<Self> {
+        self.amount_cents
+            .checked_neg()
+            .map(|amount| Self::new(amount, self.currency))
     }
 
     /// Negate the amount.
+    ///
+    /// # Panics
+    /// Panics if amount is i64::MIN.
     pub fn negate(&self) -> Self {
-        Self::new(-self.amount_cents, self.currency)
+        self.try_negate().expect("Cannot negate i64::MIN")
     }
 
     /// Convert to a decimal value.
@@ -180,15 +200,14 @@ impl Money {
         self.try_add(other).expect("Currency mismatch in addition")
     }
 
-    /// Try to add another Money value, returning None if currencies don't match.
+    /// Try to add another Money value, returning None if currencies don't match or overflow.
     pub fn try_add(&self, other: &Money) -> Option<Money> {
         if self.currency != other.currency {
             return None;
         }
-        Some(Money::new(
-            self.amount_cents + other.amount_cents,
-            self.currency,
-        ))
+        self.amount_cents
+            .checked_add(other.amount_cents)
+            .map(|amount| Money::new(amount, self.currency))
     }
 
     /// Subtract another Money value.
@@ -200,26 +219,48 @@ impl Money {
             .expect("Currency mismatch in subtraction")
     }
 
-    /// Try to subtract another Money value.
+    /// Try to subtract another Money value, returning None if currencies don't match or overflow.
     pub fn try_subtract(&self, other: &Money) -> Option<Money> {
         if self.currency != other.currency {
             return None;
         }
-        Some(Money::new(
-            self.amount_cents - other.amount_cents,
-            self.currency,
-        ))
+        self.amount_cents
+            .checked_sub(other.amount_cents)
+            .map(|amount| Money::new(amount, self.currency))
+    }
+
+    /// Multiply by a scalar. Returns None on overflow.
+    pub fn try_multiply(&self, factor: i64) -> Option<Money> {
+        self.amount_cents
+            .checked_mul(factor)
+            .map(|amount| Money::new(amount, self.currency))
     }
 
     /// Multiply by a scalar.
+    ///
+    /// # Panics
+    /// Panics on overflow. Prefer `try_multiply` for safe arithmetic.
     pub fn multiply(&self, factor: i64) -> Money {
-        Money::new(self.amount_cents * factor, self.currency)
+        self.try_multiply(factor).expect("Overflow in Money::multiply")
     }
 
     /// Multiply by a decimal factor (e.g., for percentages).
+    /// Returns None if result overflows i64 range.
+    pub fn try_multiply_decimal(&self, factor: f64) -> Option<Money> {
+        let result = self.amount_cents as f64 * factor;
+        if result.is_finite() && result >= i64::MIN as f64 && result <= i64::MAX as f64 {
+            Some(Money::new(result.round() as i64, self.currency))
+        } else {
+            None
+        }
+    }
+
+    /// Multiply by a decimal factor (e.g., for percentages).
+    ///
+    /// # Panics
+    /// Panics if result overflows. Prefer `try_multiply_decimal` for safe arithmetic.
     pub fn multiply_decimal(&self, factor: f64) -> Money {
-        let new_amount = (self.amount_cents as f64 * factor).round() as i64;
-        Money::new(new_amount, self.currency)
+        self.try_multiply_decimal(factor).expect("Overflow in Money::multiply_decimal")
     }
 
     /// Calculate a percentage of this amount.
@@ -227,9 +268,19 @@ impl Money {
         self.multiply_decimal(percent / 100.0)
     }
 
+    /// Try to sum an iterator of Money values. Returns None on overflow or currency mismatch.
+    pub fn try_sum<'a>(iter: impl Iterator<Item = &'a Money>, currency: Currency) -> Option<Money> {
+        iter.fold(Some(Money::zero(currency)), |acc, m| {
+            acc.and_then(|a| a.try_add(m))
+        })
+    }
+
     /// Sum an iterator of Money values.
+    ///
+    /// # Panics
+    /// Panics on overflow or currency mismatch. Prefer `try_sum` for safe arithmetic.
     pub fn sum<'a>(iter: impl Iterator<Item = &'a Money>, currency: Currency) -> Money {
-        iter.fold(Money::zero(currency), |acc, m| acc + m.clone())
+        Self::try_sum(iter, currency).expect("Overflow or currency mismatch in Money::sum")
     }
 }
 
@@ -252,6 +303,8 @@ impl Sub for Money {
 impl Mul<i64> for Money {
     type Output = Money;
 
+    /// # Panics
+    /// Panics on overflow.
     fn mul(self, factor: i64) -> Money {
         self.multiply(factor)
     }
@@ -341,5 +394,68 @@ mod tests {
         assert_eq!(Currency::from_code("USD"), Some(Currency::USD));
         assert_eq!(Currency::from_code("eur"), Some(Currency::EUR));
         assert_eq!(Currency::from_code("INVALID"), None);
+    }
+
+    // Security tests for overflow protection
+
+    #[test]
+    fn test_try_add_overflow() {
+        let max = Money::new(i64::MAX, Currency::USD);
+        let one = Money::new(1, Currency::USD);
+        assert!(max.try_add(&one).is_none());
+    }
+
+    #[test]
+    fn test_try_subtract_underflow() {
+        let min = Money::new(i64::MIN, Currency::USD);
+        let one = Money::new(1, Currency::USD);
+        assert!(min.try_subtract(&one).is_none());
+    }
+
+    #[test]
+    fn test_try_multiply_overflow() {
+        let large = Money::new(i64::MAX / 2 + 1, Currency::USD);
+        assert!(large.try_multiply(2).is_none());
+    }
+
+    #[test]
+    fn test_try_multiply_negative_overflow() {
+        let large = Money::new(i64::MIN / 2 - 1, Currency::USD);
+        assert!(large.try_multiply(2).is_none());
+    }
+
+    #[test]
+    fn test_try_abs_min() {
+        let min = Money::new(i64::MIN, Currency::USD);
+        assert!(min.try_abs().is_none());
+    }
+
+    #[test]
+    fn test_try_negate_min() {
+        let min = Money::new(i64::MIN, Currency::USD);
+        assert!(min.try_negate().is_none());
+    }
+
+    #[test]
+    fn test_try_sum_overflow() {
+        let large = Money::new(i64::MAX / 2 + 1, Currency::USD);
+        let amounts = vec![large, large];
+        assert!(Money::try_sum(amounts.iter(), Currency::USD).is_none());
+    }
+
+    #[test]
+    fn test_try_multiply_decimal_overflow() {
+        let large = Money::new(i64::MAX, Currency::USD);
+        assert!(large.try_multiply_decimal(2.0).is_none());
+    }
+
+    #[test]
+    fn test_safe_operations_within_bounds() {
+        let a = Money::new(1_000_000_00, Currency::USD); // $1M
+        let b = Money::new(500_000_00, Currency::USD);   // $500K
+
+        assert!(a.try_add(&b).is_some());
+        assert!(a.try_subtract(&b).is_some());
+        assert!(a.try_multiply(1000).is_some());
     }
 }

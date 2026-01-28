@@ -65,6 +65,14 @@ pub enum CommerceError {
     #[error("Currency mismatch: expected {expected}, got {got}")]
     CurrencyMismatch { expected: String, got: String },
 
+    /// Arithmetic overflow.
+    #[error("Arithmetic overflow in money calculation")]
+    Overflow,
+
+    /// Quantity exceeds maximum allowed.
+    #[error("Quantity {0} exceeds maximum allowed ({1})")]
+    QuantityExceedsLimit(i64, i64),
+
     /// Database error.
     #[error("Database error: {0}")]
     DatabaseError(String),

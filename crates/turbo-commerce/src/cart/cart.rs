@@ -1,9 +1,13 @@
 //! Cart and line item types.
 
+use crate::error::CommerceError;
 use crate::ids::{CartId, LineItemId, ProductId, UserId, VariantId};
 use crate::money::{Currency, Money};
 use crate::cart::{AppliedDiscount, CartPricing, LineItemPricing};
 use serde::{Deserialize, Serialize};
+
+/// Maximum quantity allowed per line item.
+pub const MAX_QUANTITY_PER_ITEM: i64 = 9999;
 
 /// A shopping cart.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -59,6 +63,11 @@ impl Cart {
     }
 
     /// Add an item to the cart.
+    ///
+    /// Returns an error if:
+    /// - Quantity is not positive
+    /// - Adding would exceed MAX_QUANTITY_PER_ITEM
+    /// - Arithmetic overflow would occur
     pub fn add_item(
         &mut self,
         variant_id: VariantId,
@@ -66,36 +75,61 @@ impl Cart {
         product_name: impl Into<String>,
         quantity: i64,
         unit_price: Money,
-    ) -> LineItemId {
+    ) -> Result<LineItemId, CommerceError> {
+        // Validate quantity
+        if quantity <= 0 {
+            return Err(CommerceError::InvalidQuantity(quantity));
+        }
+
         // Check if item already exists
         if let Some(existing) = self.items.iter_mut().find(|i| i.variant_id == variant_id) {
-            existing.quantity += quantity;
-            existing.update_total();
+            let new_quantity = existing.quantity
+                .checked_add(quantity)
+                .ok_or(CommerceError::Overflow)?;
+
+            if new_quantity > MAX_QUANTITY_PER_ITEM {
+                return Err(CommerceError::QuantityExceedsLimit(new_quantity, MAX_QUANTITY_PER_ITEM));
+            }
+
+            existing.quantity = new_quantity;
+            existing.update_total()?;
             self.updated_at = current_timestamp();
-            return existing.id.clone();
+            return Ok(existing.id.clone());
+        }
+
+        // Validate new item quantity
+        if quantity > MAX_QUANTITY_PER_ITEM {
+            return Err(CommerceError::QuantityExceedsLimit(quantity, MAX_QUANTITY_PER_ITEM));
         }
 
         // Add new item
-        let item = LineItem::new(variant_id, product_id, product_name, quantity, unit_price);
+        let item = LineItem::new(variant_id, product_id, product_name, quantity, unit_price)?;
         let id = item.id.clone();
         self.items.push(item);
         self.updated_at = current_timestamp();
-        id
+        Ok(id)
     }
 
     /// Update item quantity.
-    pub fn update_quantity(&mut self, line_item_id: &LineItemId, quantity: i64) -> bool {
+    ///
+    /// If quantity is <= 0, removes the item.
+    /// Returns error if quantity exceeds limit or would cause overflow.
+    pub fn update_quantity(&mut self, line_item_id: &LineItemId, quantity: i64) -> Result<bool, CommerceError> {
         if quantity <= 0 {
-            return self.remove_item(line_item_id);
+            return Ok(self.remove_item(line_item_id));
+        }
+
+        if quantity > MAX_QUANTITY_PER_ITEM {
+            return Err(CommerceError::QuantityExceedsLimit(quantity, MAX_QUANTITY_PER_ITEM));
         }
 
         if let Some(item) = self.items.iter_mut().find(|i| &i.id == line_item_id) {
             item.quantity = quantity;
-            item.update_total();
+            item.update_total()?;
             self.updated_at = current_timestamp();
-            true
+            Ok(true)
         } else {
-            false
+            Ok(false)
         }
     }
 
@@ -162,7 +196,9 @@ impl Cart {
     }
 
     /// Calculate cart pricing.
-    pub fn calculate_pricing(&self) -> CartPricing {
+    ///
+    /// Returns error if arithmetic overflow occurs.
+    pub fn calculate_pricing(&self) -> Result<CartPricing, CommerceError> {
         let line_items: Vec<LineItemPricing> = self
             .items
             .iter()
@@ -177,38 +213,51 @@ impl Cart {
             })
             .collect();
 
-        let subtotal = Money::sum(
+        let subtotal = Money::try_sum(
             self.items.iter().map(|i| &i.total_price),
             self.currency,
-        );
+        ).ok_or(CommerceError::Overflow)?;
 
-        let discount_total = Money::sum(
+        let discount_total = Money::try_sum(
             self.discounts.iter().map(|d| &d.amount),
             self.currency,
-        );
+        ).ok_or(CommerceError::Overflow)?;
 
-        CartPricing {
+        let grand_total = subtotal.try_subtract(&discount_total)
+            .ok_or_else(|| CommerceError::CurrencyMismatch {
+                expected: self.currency.code().to_string(),
+                got: "mixed".to_string(),
+            })?;
+
+        Ok(CartPricing {
             subtotal,
             discount_total,
             shipping_total: Money::zero(self.currency),
             tax_total: Money::zero(self.currency),
-            grand_total: subtotal.subtract(&discount_total),
+            grand_total,
             line_items,
-        }
+        })
     }
 
     /// Merge another cart into this one (e.g., when user logs in).
-    pub fn merge(&mut self, other: Cart) {
+    ///
+    /// Items that would exceed quantity limits are capped at MAX_QUANTITY_PER_ITEM.
+    pub fn merge(&mut self, other: Cart) -> Result<(), CommerceError> {
         for item in other.items {
             if let Some(existing) = self.items.iter_mut().find(|i| i.variant_id == item.variant_id)
             {
-                existing.quantity += item.quantity;
-                existing.update_total();
+                // Use saturating add and cap at max
+                let new_quantity = existing.quantity
+                    .saturating_add(item.quantity)
+                    .min(MAX_QUANTITY_PER_ITEM);
+                existing.quantity = new_quantity;
+                existing.update_total()?;
             } else {
                 self.items.push(item);
             }
         }
         self.updated_at = current_timestamp();
+        Ok(())
     }
 
     /// Set the cart for an authenticated user.
@@ -255,8 +304,9 @@ impl LineItem {
         product_name: impl Into<String>,
         quantity: i64,
         unit_price: Money,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, CommerceError> {
+        let total_price = unit_price.try_multiply(quantity).ok_or(CommerceError::Overflow)?;
+        Ok(Self {
             id: LineItemId::generate(),
             variant_id,
             product_id,
@@ -264,14 +314,15 @@ impl LineItem {
             variant_name: None,
             quantity,
             unit_price,
-            total_price: unit_price.multiply(quantity),
+            total_price,
             properties: Vec::new(),
-        }
+        })
     }
 
     /// Update the total price based on quantity.
-    pub fn update_total(&mut self) {
-        self.total_price = self.unit_price.multiply(self.quantity);
+    pub fn update_total(&mut self) -> Result<(), CommerceError> {
+        self.total_price = self.unit_price.try_multiply(self.quantity).ok_or(CommerceError::Overflow)?;
+        Ok(())
     }
 
     /// Add a custom property.
@@ -321,7 +372,7 @@ mod tests {
             "Test Product",
             2,
             Money::new(1000, Currency::USD),
-        );
+        ).unwrap();
 
         assert_eq!(cart.item_count(), 2);
         assert_eq!(cart.unique_item_count(), 1);
@@ -338,7 +389,7 @@ mod tests {
             "Test Product",
             1,
             Money::new(1000, Currency::USD),
-        );
+        ).unwrap();
 
         cart.add_item(
             variant_id.clone(),
@@ -346,7 +397,7 @@ mod tests {
             "Test Product",
             2,
             Money::new(1000, Currency::USD),
-        );
+        ).unwrap();
 
         assert_eq!(cart.unique_item_count(), 1);
         assert_eq!(cart.item_count(), 3);
@@ -361,9 +412,9 @@ mod tests {
             "Test Product",
             1,
             Money::new(1000, Currency::USD),
-        );
+        ).unwrap();
 
-        cart.update_quantity(&line_id, 5);
+        cart.update_quantity(&line_id, 5).unwrap();
         assert_eq!(cart.item_count(), 5);
     }
 
@@ -376,7 +427,7 @@ mod tests {
             "Test Product",
             1,
             Money::new(1000, Currency::USD),
-        );
+        ).unwrap();
 
         assert!(cart.remove_item(&line_id));
         assert!(cart.is_empty());
@@ -391,17 +442,43 @@ mod tests {
             "Product A",
             2,
             Money::new(1000, Currency::USD),
-        );
+        ).unwrap();
         cart.add_item(
             VariantId::new("var-2"),
             ProductId::new("prod-2"),
             "Product B",
             1,
             Money::new(2000, Currency::USD),
-        );
+        ).unwrap();
 
-        let pricing = cart.calculate_pricing();
+        let pricing = cart.calculate_pricing().unwrap();
         assert_eq!(pricing.subtotal.amount_cents, 4000); // 2*1000 + 1*2000
         assert_eq!(pricing.grand_total.amount_cents, 4000);
+    }
+
+    #[test]
+    fn test_quantity_limit() {
+        let mut cart = Cart::new("session-123");
+        let result = cart.add_item(
+            VariantId::new("var-1"),
+            ProductId::new("prod-1"),
+            "Test Product",
+            MAX_QUANTITY_PER_ITEM + 1,
+            Money::new(1000, Currency::USD),
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_invalid_quantity() {
+        let mut cart = Cart::new("session-123");
+        let result = cart.add_item(
+            VariantId::new("var-1"),
+            ProductId::new("prod-1"),
+            "Test Product",
+            0,
+            Money::new(1000, Currency::USD),
+        );
+        assert!(result.is_err());
     }
 }
