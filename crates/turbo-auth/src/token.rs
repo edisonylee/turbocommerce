@@ -167,34 +167,13 @@ pub struct TokenValidation {
     pub user_id: UserId,
 }
 
-/// Generate a secure token string.
+/// Generate a cryptographically secure token string.
 fn generate_token_string() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    use rand::Rng;
 
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
-
-    // Create pseudo-random token
-    let ptr = Box::new(0u64);
-    let addr = &*ptr as *const u64 as u64;
-
-    let mut state = ts as u64 ^ addr;
-    let mut chars = Vec::with_capacity(32);
-
-    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-    for _ in 0..32 {
-        // xorshift
-        state ^= state << 13;
-        state ^= state >> 7;
-        state ^= state << 17;
-        let idx = (state as usize) % ALPHABET.len();
-        chars.push(ALPHABET[idx] as char);
-    }
-
-    chars.into_iter().collect()
+    let bytes: [u8; 24] = rand::thread_rng().gen();
+    URL_SAFE_NO_PAD.encode(bytes)
 }
 
 /// Get current Unix timestamp.
@@ -241,5 +220,60 @@ mod tests {
         let token1 = AuthToken::generate(TokenType::MagicLink, UserId::new("user_1"));
         let token2 = AuthToken::generate(TokenType::MagicLink, UserId::new("user_1"));
         assert_ne!(token1.token, token2.token);
+    }
+
+    // Security tests
+
+    #[test]
+    fn test_token_entropy() {
+        let token = AuthToken::generate(TokenType::ApiAccess, UserId::new("user_1"));
+
+        // Token should be 32 characters (24 bytes base64 encoded)
+        assert_eq!(token.token.len(), 32);
+
+        // Token should only contain URL-safe base64 characters
+        assert!(token.token.chars().all(|c| {
+            c.is_ascii_alphanumeric() || c == '-' || c == '_'
+        }));
+    }
+
+    #[test]
+    fn test_rapid_token_generation_uniqueness() {
+        // Generate many tokens rapidly to ensure they're all unique
+        let tokens: Vec<String> = (0..100)
+            .map(|_| AuthToken::generate(TokenType::MagicLink, UserId::new("user_1")).token)
+            .collect();
+
+        // Check all pairs are unique
+        for i in 0..tokens.len() {
+            for j in (i + 1)..tokens.len() {
+                assert_ne!(tokens[i], tokens[j], "Tokens {} and {} are identical", i, j);
+            }
+        }
+    }
+
+    #[test]
+    fn test_tokens_not_predictable() {
+        // Generate tokens and check they don't follow obvious patterns
+        let token1 = AuthToken::generate(TokenType::PasswordReset, UserId::new("user_1"));
+        let token2 = AuthToken::generate(TokenType::PasswordReset, UserId::new("user_1"));
+
+        // Tokens should differ in multiple positions (not just incrementing)
+        let diff_count = token1.token.chars()
+            .zip(token2.token.chars())
+            .filter(|(a, b)| a != b)
+            .count();
+
+        // With proper randomness, tokens should differ significantly
+        assert!(diff_count > 10, "Tokens are too similar, might be predictable");
+    }
+
+    #[test]
+    fn test_token_length_sufficient() {
+        let token = AuthToken::generate(TokenType::ApiAccess, UserId::new("user_1"));
+
+        // 24 bytes = 192 bits of entropy, sufficient for security
+        // Base64 encoding: 24 bytes -> 32 characters
+        assert!(token.token.len() >= 32);
     }
 }

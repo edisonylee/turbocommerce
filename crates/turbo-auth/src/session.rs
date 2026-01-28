@@ -220,17 +220,13 @@ impl Default for SessionConfig {
     }
 }
 
-/// Generate a secure random ID.
+/// Generate a cryptographically secure random ID.
 fn generate_secure_id(prefix: &str) -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
-    // Mix timestamp with some randomness from memory addresses
-    let ptr = Box::new(0u8);
-    let addr = &*ptr as *const u8 as usize;
-    format!("{}_{:x}_{:x}", prefix, ts, addr)
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    use rand::Rng;
+
+    let bytes: [u8; 18] = rand::thread_rng().gen();
+    format!("{}_{}", prefix, URL_SAFE_NO_PAD.encode(bytes))
 }
 
 /// Get current Unix timestamp.

@@ -20,4 +20,8 @@ pub enum CacheError {
     /// Key not found.
     #[error("Key not found: {0}")]
     NotFound(String),
+
+    /// Concurrent modification detected.
+    #[error("Concurrent modification: {0}")]
+    ConcurrentModification(String),
 }

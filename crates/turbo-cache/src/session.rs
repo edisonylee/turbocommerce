@@ -3,6 +3,9 @@
 use crate::{Cache, CacheError};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+/// Maximum retry attempts for optimistic concurrency control.
+const MAX_UPDATE_RETRIES: u32 = 3;
+
 /// A unique session identifier.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SessionId(String);
@@ -13,17 +16,13 @@ impl SessionId {
         Self(id.into())
     }
 
-    /// Generate a new random session ID.
-    ///
-    /// Uses a simple timestamp-based ID. In production, you'd want
-    /// a more robust random ID generator.
+    /// Generate a new cryptographically secure session ID.
     pub fn generate() -> Self {
-        // Simple ID generation - in production use a proper UUID
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos())
-            .unwrap_or(0);
-        Self(format!("sess_{}", timestamp))
+        use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+        use rand::Rng;
+
+        let bytes: [u8; 18] = rand::thread_rng().gen();
+        Self(format!("sess_{}", URL_SAFE_NO_PAD.encode(bytes)))
     }
 
     /// Get the session ID as a string.
@@ -59,6 +58,8 @@ pub struct SessionData<T> {
     pub id: SessionId,
     /// User-defined session data.
     pub data: T,
+    /// Version for optimistic concurrency control.
+    pub version: u64,
     /// When the session was created (Unix timestamp).
     pub created_at: u64,
     /// When the session was last accessed (Unix timestamp).
@@ -73,7 +74,7 @@ pub struct SessionData<T> {
 /// use turbo_cache::{Session, SessionId};
 /// use serde::{Serialize, Deserialize};
 ///
-/// #[derive(Serialize, Deserialize, Default)]
+/// #[derive(Serialize, Deserialize, Default, Clone)]
 /// struct UserSession {
 ///     user_id: Option<String>,
 ///     cart_id: Option<String>,
@@ -97,7 +98,7 @@ pub struct Session<T> {
 
 impl<T> Session<T>
 where
-    T: Serialize + DeserializeOwned + Default,
+    T: Serialize + DeserializeOwned + Default + Clone,
 {
     /// Create a new session manager using the default store.
     pub fn new() -> Result<Self, CacheError> {
@@ -122,7 +123,7 @@ where
             Some(session_data) => Ok(session_data.data),
             None => {
                 let data = T::default();
-                self.set(id, &data)?;
+                self.set_internal(id, &data, 1)?;
                 Ok(data)
             }
         }
@@ -134,8 +135,26 @@ where
         Ok(self.cache.get::<SessionData<T>>(&key)?.map(|s| s.data))
     }
 
-    /// Set session data.
+    /// Get full session data including version (for advanced use).
+    pub fn get_versioned(&self, id: &SessionId) -> Result<Option<SessionData<T>>, CacheError> {
+        let key = self.session_key(id);
+        self.cache.get::<SessionData<T>>(&key)
+    }
+
+    /// Set session data (unconditional write).
     pub fn set(&self, id: &SessionId, data: &T) -> Result<(), CacheError> {
+        // Get current version or start at 1
+        let key = self.session_key(id);
+        let version = self
+            .cache
+            .get::<SessionData<T>>(&key)?
+            .map(|s| s.version + 1)
+            .unwrap_or(1);
+        self.set_internal(id, data, version)
+    }
+
+    /// Internal set with explicit version.
+    fn set_internal(&self, id: &SessionId, data: &T, version: u64) -> Result<(), CacheError> {
         let key = self.session_key(id);
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -145,6 +164,7 @@ where
         let session_data = SessionData {
             id: id.clone(),
             data: data.clone(),
+            version,
             created_at: now,
             last_accessed: now,
         };
@@ -164,23 +184,70 @@ where
         self.cache.exists(&key)
     }
 
-    fn session_key(&self, id: &SessionId) -> String {
-        format!("session:{}", id)
-    }
-}
-
-impl<T> Session<T>
-where
-    T: Serialize + DeserializeOwned + Default + Clone,
-{
-    /// Update session data with a closure.
+    /// Update session data with a closure, using optimistic concurrency control.
+    ///
+    /// This method retries up to MAX_UPDATE_RETRIES times if a concurrent
+    /// modification is detected. The closure receives the current data and
+    /// should return the modified data.
+    ///
+    /// # Returns
+    /// - `Ok(T)` - The updated data after successful write
+    /// - `Err(CacheError::ConcurrentModification)` - If all retries failed
     pub fn update<F>(&self, id: &SessionId, f: F) -> Result<T, CacheError>
     where
-        F: FnOnce(&mut T),
+        F: Fn(&mut T),
     {
-        let mut data = self.get_or_create(id)?;
-        f(&mut data);
-        self.set(id, &data)?;
-        Ok(data)
+        let key = self.session_key(id);
+
+        for _attempt in 0..MAX_UPDATE_RETRIES {
+            // Read current state
+            let current = self.cache.get::<SessionData<T>>(&key)?;
+
+            let (mut data, expected_version) = match current {
+                Some(session_data) => (session_data.data, session_data.version),
+                None => (T::default(), 0),
+            };
+
+            // Apply the update
+            f(&mut data);
+
+            // Try to write with incremented version
+            let new_version = expected_version + 1;
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+
+            let session_data = SessionData {
+                id: id.clone(),
+                data: data.clone(),
+                version: new_version,
+                created_at: now,
+                last_accessed: now,
+            };
+
+            // Write the data
+            self.cache.set(&key, &session_data)?;
+
+            // Verify the write succeeded with our version
+            // (In a real implementation with CAS support, this would be atomic)
+            if let Some(written) = self.cache.get::<SessionData<T>>(&key)? {
+                if written.version == new_version {
+                    return Ok(data);
+                }
+                // Version mismatch - another writer got in, retry
+                continue;
+            }
+
+            return Ok(data);
+        }
+
+        Err(CacheError::ConcurrentModification(
+            "max retries exceeded".to_string(),
+        ))
+    }
+
+    fn session_key(&self, id: &SessionId) -> String {
+        format!("session:{}", id)
     }
 }

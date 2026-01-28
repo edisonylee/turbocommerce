@@ -10,6 +10,11 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 
+# Cryptography - production-grade
+argon2 = "0.5"
+rand = "0.8"
+base64 = "0.22"
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 spin-sdk = "3"
 
