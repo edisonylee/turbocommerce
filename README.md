@@ -131,6 +131,53 @@ turbocommerce/
     └── turbo-storefront/   # Example store
 ```
 
+## Security
+
+TurboCommerce uses production-grade security practices:
+
+- **Password hashing**: Argon2id (OWASP recommended)
+- **Token generation**: Cryptographically secure random (CSPRNG)
+- **Session IDs**: 192-bit entropy with CSPRNG
+- **Arithmetic safety**: Checked operations to prevent overflow attacks
+
+## Breaking Changes (v0.2.0)
+
+### Cart API
+
+Cart methods now return `Result` to handle overflow and validation errors:
+
+```rust
+// Before
+let line_id = cart.add_item(variant_id, product_id, "Product", 1, price);
+
+// After
+let line_id = cart.add_item(variant_id, product_id, "Product", 1, price)?;
+```
+
+Changed methods:
+- `Cart::add_item()` -> `Result<LineItemId, CommerceError>`
+- `Cart::update_quantity()` -> `Result<bool, CommerceError>`
+- `Cart::merge()` -> `Result<(), CommerceError>`
+- `Cart::calculate_pricing()` -> `Result<CartPricing, CommerceError>`
+- `LineItem::new()` -> `Result<Self, CommerceError>`
+
+### Money API
+
+New safe arithmetic methods (use these instead of operators for fallible code):
+
+```rust
+// Safe (returns Option)
+let total = price.try_multiply(quantity)?;
+let sum = Money::try_sum(prices.iter(), Currency::USD)?;
+
+// Panics on overflow (use only when overflow is impossible)
+let total = price.multiply(quantity);
+```
+
+### Session API
+
+`SessionData<T>` now includes a `version: u64` field for optimistic concurrency.
+
 ## Status
 
 This is an experimental project. It demonstrates:
@@ -139,6 +186,7 @@ This is an experimental project. It demonstrates:
 - SQLite and KV storage via Spin SDK
 - Type-safe e-commerce domain modeling in Rust
 - Sub-millisecond cold starts on edge compute
+- Production-grade security practices
 
 ## License
 
