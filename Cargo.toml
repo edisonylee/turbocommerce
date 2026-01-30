@@ -60,4 +60,4 @@ toml = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
 
 [patch.crates-io]
-base64ct = "1.7.1"
+base64ct = { git = "https://github.com/RustCrypto/utils", tag = "base64ct-v1.7.1" }
