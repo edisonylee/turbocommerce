@@ -1,6 +1,6 @@
 //! Database connection and query execution.
 
-use crate::{DbError, QueryResult, Row, Value};
+use crate::{DbError, QueryResult, Value};
 use serde::de::DeserializeOwned;
 
 /// SQLite database connection.
