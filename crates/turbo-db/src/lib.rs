@@ -32,17 +32,17 @@
 //! )?;
 //! ```
 
-mod error;
 mod db;
+mod error;
 mod types;
 
-pub use error::DbError;
 pub use db::Db;
-pub use types::{Value, Row, QueryResult};
+pub use error::DbError;
+pub use types::{QueryResult, Row, Value};
 
 /// Prelude for convenient imports.
 pub mod prelude {
-    pub use crate::{Db, DbError, Value, Row, QueryResult, params};
+    pub use crate::{params, Db, DbError, QueryResult, Row, Value};
 }
 
 /// Create a parameter list for SQL queries.
@@ -62,4 +62,37 @@ macro_rules! params {
     ($($param:expr),+ $(,)?) => {
         &[$($crate::Value::from($param)),+]
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_params_empty() {
+        let p: &[Value] = params![];
+        assert!(p.is_empty());
+    }
+
+    #[test]
+    fn test_params_single() {
+        let p = params![42];
+        assert_eq!(p.len(), 1);
+        assert!(matches!(&p[0], Value::Integer(42)));
+    }
+
+    #[test]
+    fn test_params_multiple() {
+        let p = params!["hello", 42, 3.14];
+        assert_eq!(p.len(), 3);
+        assert!(matches!(&p[0], Value::Text(s) if s == "hello"));
+        assert!(matches!(&p[1], Value::Integer(42)));
+        assert!(matches!(&p[2], Value::Real(f) if (*f - 3.14).abs() < 0.01));
+    }
+
+    #[test]
+    fn test_params_trailing_comma() {
+        let p = params!["a", "b",];
+        assert_eq!(p.len(), 2);
+    }
 }

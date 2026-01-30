@@ -41,6 +41,5 @@ pub use route::*;
 pub use leptos_router::{
     components::{Route, Router, Routes},
     hooks::{use_params, use_params_map, use_query, use_query_map},
-    path,
-    ParamSegment, StaticSegment, WildcardSegment,
+    path, ParamSegment, StaticSegment, WildcardSegment,
 };

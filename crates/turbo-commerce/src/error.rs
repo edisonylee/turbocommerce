@@ -30,7 +30,9 @@ pub enum CommerceError {
     ItemNotInCart(String),
 
     /// Insufficient inventory.
-    #[error("Insufficient inventory for {product_id}: requested {requested}, available {available}")]
+    #[error(
+        "Insufficient inventory for {product_id}: requested {requested}, available {available}"
+    )]
     InsufficientInventory {
         product_id: String,
         requested: i64,
@@ -90,12 +92,14 @@ pub enum CommerceError {
     ValidationError(String),
 }
 
+#[cfg(feature = "storage")]
 impl From<turbo_db::DbError> for CommerceError {
     fn from(e: turbo_db::DbError) -> Self {
         CommerceError::DatabaseError(e.to_string())
     }
 }
 
+#[cfg(feature = "storage")]
 impl From<turbo_cache::CacheError> for CommerceError {
     fn from(e: turbo_cache::CacheError) -> Self {
         CommerceError::CacheError(e.to_string())

@@ -2,10 +2,10 @@
 //!
 //! Contains types for faceted search, filters, and pagination.
 
-mod query;
 mod filter;
+mod query;
 mod results;
 
-pub use query::{SearchQuery, SortOption};
 pub use filter::Filter;
-pub use results::{SearchResults, Pagination};
+pub use query::{SearchQuery, SortOption};
+pub use results::{Pagination, SearchResults};

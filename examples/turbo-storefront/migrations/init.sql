@@ -27,10 +27,10 @@ CREATE TABLE IF NOT EXISTS cart_items (
 CREATE INDEX IF NOT EXISTS idx_cart_session ON cart_items(session_id);
 
 -- Seed initial product data
-INSERT OR REPLACE INTO products (id, name, description, price_cents, category, stock) VALUES
-    ('rust-book', 'Rust Programming Book', 'The complete guide to Rust programming language. Learn memory safety, ownership, and zero-cost abstractions.', 4999, 'books', 100),
-    ('wasm-kit', 'WASM Development Kit', 'Everything you need to build WebAssembly applications. Includes tooling, examples, and best practices.', 9999, 'tools', 50),
-    ('edge-guide', 'Edge Computing Guide', 'Master edge computing patterns. Deploy to Cloudflare Workers, Fermyon Cloud, and more.', 3999, 'books', 75),
-    ('perf-pro', 'Performance Tuning Pro', 'Advanced performance optimization techniques for Rust applications. Profiling, benchmarking, and optimization.', 7999, 'tools', 30),
-    ('turbo-course', 'TurboCommerce Mastery', 'Complete video course on building e-commerce with TurboCommerce. 40+ hours of content.', 19999, 'courses', 999),
-    ('leptos-book', 'Leptos in Action', 'Build reactive web applications with Leptos. Full-stack Rust for the modern web.', 5499, 'books', 60);
+INSERT OR REPLACE INTO products (id, name, description, price_cents, image_url, category, stock) VALUES
+    ('rust-book', 'Rust Programming Book', 'The complete guide to Rust programming language. Learn memory safety, ownership, and zero-cost abstractions.', 4999, '/images/rust_programming_book.png', 'books', 100),
+    ('wasm-kit', 'WASM Development Kit', 'Everything you need to build WebAssembly applications. Includes tooling, examples, and best practices.', 9999, '/images/wasm-dev-kit.png', 'tools', 50),
+    ('edge-guide', 'Edge Computing Guide', 'Master edge computing patterns. Deploy to Cloudflare Workers, Fermyon Cloud, and more.', 3999, '/images/edge_computing.png', 'books', 75),
+    ('perf-pro', 'Performance Tuning Pro', 'Advanced performance optimization techniques for Rust applications. Profiling, benchmarking, and optimization.', 7999, '/images/spin-framework.png', 'tools', 30),
+    ('turbo-course', 'TurboCommerce Mastery', 'Complete video course on building e-commerce with TurboCommerce. 40+ hours of content.', 19999, '/images/cargo_crate_stickers.png', 'courses', 999),
+    ('leptos-book', 'Leptos in Action', 'Build reactive web applications with Leptos. Full-stack Rust for the modern web.', 5499, '/images/ferris_plushie.png', 'books', 60);

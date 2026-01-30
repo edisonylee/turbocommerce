@@ -4,7 +4,7 @@ use crate::ids::AddressId;
 use serde::{Deserialize, Serialize};
 
 /// A postal address.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Address {
     /// Address ID (None for unsaved addresses).
     pub id: Option<AddressId>,
@@ -110,26 +110,6 @@ impl Address {
             && !self.city.is_empty()
             && !self.country_code.is_empty()
             && !self.zip.is_empty()
-    }
-}
-
-impl Default for Address {
-    fn default() -> Self {
-        Self {
-            id: None,
-            first_name: String::new(),
-            last_name: String::new(),
-            company: None,
-            address1: String::new(),
-            address2: None,
-            city: String::new(),
-            province: None,
-            province_code: None,
-            country: String::new(),
-            country_code: String::new(),
-            zip: String::new(),
-            phone: None,
-        }
     }
 }
 

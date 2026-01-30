@@ -140,3 +140,199 @@ fn base64_encode(data: &[u8]) -> String {
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // === Method Tests ===
+
+    #[test]
+    fn test_method_as_str() {
+        assert_eq!(Method::Get.as_str(), "GET");
+        assert_eq!(Method::Post.as_str(), "POST");
+        assert_eq!(Method::Put.as_str(), "PUT");
+        assert_eq!(Method::Patch.as_str(), "PATCH");
+        assert_eq!(Method::Delete.as_str(), "DELETE");
+        assert_eq!(Method::Head.as_str(), "HEAD");
+        assert_eq!(Method::Options.as_str(), "OPTIONS");
+    }
+
+    #[test]
+    fn test_method_equality() {
+        assert_eq!(Method::Get, Method::Get);
+        assert_ne!(Method::Get, Method::Post);
+    }
+
+    #[test]
+    fn test_method_copy() {
+        let m = Method::Post;
+        let m2 = m; // Copy
+        assert_eq!(m, m2);
+    }
+
+    // === RequestBuilder Tests ===
+
+    #[test]
+    fn test_request_builder_new() {
+        let builder = RequestBuilder::new(Method::Get, "https://example.com");
+        assert!(builder.headers.is_empty());
+        assert!(builder.body.is_none());
+    }
+
+    #[test]
+    fn test_request_builder_header() {
+        let builder =
+            RequestBuilder::new(Method::Get, "https://example.com").header("X-Custom", "value");
+
+        assert_eq!(builder.headers.get("X-Custom"), Some(&"value".to_string()));
+    }
+
+    #[test]
+    fn test_request_builder_multiple_headers() {
+        let builder = RequestBuilder::new(Method::Get, "https://example.com")
+            .header("Accept", "application/json")
+            .header("X-Api-Key", "secret");
+
+        assert_eq!(builder.headers.len(), 2);
+    }
+
+    #[test]
+    fn test_request_builder_headers_bulk() {
+        let headers = vec![
+            ("A".to_string(), "1".to_string()),
+            ("B".to_string(), "2".to_string()),
+        ];
+        let builder = RequestBuilder::new(Method::Get, "https://example.com").headers(headers);
+
+        assert_eq!(builder.headers.len(), 2);
+    }
+
+    #[test]
+    fn test_request_builder_body() {
+        let builder = RequestBuilder::new(Method::Post, "https://example.com").body(vec![1, 2, 3]);
+
+        assert_eq!(builder.body, Some(vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn test_request_builder_text() {
+        let builder =
+            RequestBuilder::new(Method::Post, "https://example.com").text("Hello, World!");
+
+        assert_eq!(builder.body, Some(b"Hello, World!".to_vec()));
+        assert_eq!(
+            builder.headers.get("Content-Type"),
+            Some(&"text/plain".to_string())
+        );
+    }
+
+    #[test]
+    fn test_request_builder_text_preserves_existing_content_type() {
+        let builder = RequestBuilder::new(Method::Post, "https://example.com")
+            .header("Content-Type", "text/html")
+            .text("Hello");
+
+        // Original Content-Type should be preserved
+        assert_eq!(
+            builder.headers.get("Content-Type"),
+            Some(&"text/html".to_string())
+        );
+    }
+
+    #[test]
+    fn test_request_builder_json() {
+        use serde::Serialize;
+
+        #[derive(Serialize)]
+        struct Data {
+            value: i32,
+        }
+
+        let builder = RequestBuilder::new(Method::Post, "https://example.com")
+            .json(&Data { value: 42 })
+            .unwrap();
+
+        assert_eq!(
+            builder.headers.get("Content-Type"),
+            Some(&"application/json".to_string())
+        );
+        assert_eq!(builder.body, Some(br#"{"value":42}"#.to_vec()));
+    }
+
+    #[test]
+    fn test_request_builder_bearer_auth() {
+        let builder =
+            RequestBuilder::new(Method::Get, "https://example.com").bearer_auth("my-token");
+
+        assert_eq!(
+            builder.headers.get("Authorization"),
+            Some(&"Bearer my-token".to_string())
+        );
+    }
+
+    #[test]
+    fn test_request_builder_basic_auth_with_password() {
+        let builder = RequestBuilder::new(Method::Get, "https://example.com")
+            .basic_auth("user", Some("pass"));
+
+        let auth = builder.headers.get("Authorization").unwrap();
+        assert!(auth.starts_with("Basic "));
+
+        // "user:pass" in base64 = "dXNlcjpwYXNz"
+        assert_eq!(auth, "Basic dXNlcjpwYXNz");
+    }
+
+    #[test]
+    fn test_request_builder_basic_auth_without_password() {
+        let builder =
+            RequestBuilder::new(Method::Get, "https://example.com").basic_auth("user", None);
+
+        let auth = builder.headers.get("Authorization").unwrap();
+        // "user:" in base64 = "dXNlcjo="
+        assert_eq!(auth, "Basic dXNlcjo=");
+    }
+
+    #[test]
+    fn test_request_builder_accept() {
+        let builder =
+            RequestBuilder::new(Method::Get, "https://example.com").accept("application/json");
+
+        assert_eq!(
+            builder.headers.get("Accept"),
+            Some(&"application/json".to_string())
+        );
+    }
+
+    #[test]
+    fn test_request_builder_content_type() {
+        let builder = RequestBuilder::new(Method::Post, "https://example.com")
+            .content_type("application/xml");
+
+        assert_eq!(
+            builder.headers.get("Content-Type"),
+            Some(&"application/xml".to_string())
+        );
+    }
+
+    #[test]
+    fn test_request_builder_clone() {
+        let builder =
+            RequestBuilder::new(Method::Get, "https://example.com").header("X-Test", "value");
+
+        let cloned = builder.clone();
+        assert_eq!(cloned.headers.get("X-Test"), Some(&"value".to_string()));
+    }
+
+    // === Base64 Encoding Tests ===
+
+    #[test]
+    fn test_base64_encode_basic() {
+        assert_eq!(base64_encode(b"f"), "Zg==");
+        assert_eq!(base64_encode(b"fo"), "Zm8=");
+        assert_eq!(base64_encode(b"foo"), "Zm9v");
+        assert_eq!(base64_encode(b"foob"), "Zm9vYg==");
+        assert_eq!(base64_encode(b"fooba"), "Zm9vYmE=");
+        assert_eq!(base64_encode(b"foobar"), "Zm9vYmFy");
+    }
+}

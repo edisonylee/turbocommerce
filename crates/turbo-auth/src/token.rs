@@ -4,6 +4,7 @@
 
 use crate::AuthError;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use turbo_commerce::ids::UserId;
 
 /// Token type.
@@ -36,28 +37,31 @@ impl TokenType {
         }
     }
 
-    /// Parse from string.
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "password_reset" => Some(TokenType::PasswordReset),
-            "email_verification" => Some(TokenType::EmailVerification),
-            "account_activation" => Some(TokenType::AccountActivation),
-            "magic_link" => Some(TokenType::MagicLink),
-            "api_access" => Some(TokenType::ApiAccess),
-            "refresh" => Some(TokenType::Refresh),
-            _ => None,
-        }
-    }
-
     /// Get default expiration time for this token type (in seconds).
     pub fn default_expiry_secs(&self) -> i64 {
         match self {
-            TokenType::PasswordReset => 60 * 60,        // 1 hour
-            TokenType::EmailVerification => 24 * 60 * 60, // 24 hours
+            TokenType::PasswordReset => 60 * 60,              // 1 hour
+            TokenType::EmailVerification => 24 * 60 * 60,     // 24 hours
             TokenType::AccountActivation => 7 * 24 * 60 * 60, // 7 days
-            TokenType::MagicLink => 15 * 60,            // 15 minutes
-            TokenType::ApiAccess => 30 * 24 * 60 * 60,  // 30 days
-            TokenType::Refresh => 90 * 24 * 60 * 60,    // 90 days
+            TokenType::MagicLink => 15 * 60,                  // 15 minutes
+            TokenType::ApiAccess => 30 * 24 * 60 * 60,        // 30 days
+            TokenType::Refresh => 90 * 24 * 60 * 60,          // 90 days
+        }
+    }
+}
+
+impl FromStr for TokenType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "password_reset" => Ok(TokenType::PasswordReset),
+            "email_verification" => Ok(TokenType::EmailVerification),
+            "account_activation" => Ok(TokenType::AccountActivation),
+            "magic_link" => Ok(TokenType::MagicLink),
+            "api_access" => Ok(TokenType::ApiAccess),
+            "refresh" => Ok(TokenType::Refresh),
+            _ => Err(()),
         }
     }
 }
@@ -202,8 +206,8 @@ mod tests {
     fn test_token_types() {
         assert_eq!(TokenType::PasswordReset.as_str(), "password_reset");
         assert_eq!(
-            TokenType::from_str("password_reset"),
-            Some(TokenType::PasswordReset)
+            "password_reset".parse::<TokenType>(),
+            Ok(TokenType::PasswordReset)
         );
     }
 
@@ -233,9 +237,10 @@ mod tests {
         assert_eq!(token.token.len(), 32);
 
         // Token should only contain URL-safe base64 characters
-        assert!(token.token.chars().all(|c| {
-            c.is_ascii_alphanumeric() || c == '-' || c == '_'
-        }));
+        assert!(token
+            .token
+            .chars()
+            .all(|c| { c.is_ascii_alphanumeric() || c == '-' || c == '_' }));
     }
 
     #[test]
@@ -260,13 +265,18 @@ mod tests {
         let token2 = AuthToken::generate(TokenType::PasswordReset, UserId::new("user_1"));
 
         // Tokens should differ in multiple positions (not just incrementing)
-        let diff_count = token1.token.chars()
+        let diff_count = token1
+            .token
+            .chars()
             .zip(token2.token.chars())
             .filter(|(a, b)| a != b)
             .count();
 
         // With proper randomness, tokens should differ significantly
-        assert!(diff_count > 10, "Tokens are too similar, might be predictable");
+        assert!(
+            diff_count > 10,
+            "Tokens are too similar, might be predictable"
+        );
     }
 
     #[test]

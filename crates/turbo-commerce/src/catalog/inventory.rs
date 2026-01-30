@@ -160,11 +160,7 @@ pub struct InventoryAdjustment {
 }
 
 impl InventoryAdjustment {
-    pub fn new(
-        variant_id: VariantId,
-        quantity_change: i64,
-        reason: AdjustmentReason,
-    ) -> Self {
+    pub fn new(variant_id: VariantId, quantity_change: i64, reason: AdjustmentReason) -> Self {
         Self {
             variant_id,
             quantity_change,

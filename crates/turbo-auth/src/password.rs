@@ -166,9 +166,7 @@ mod tests {
         let password = "TestPassword1";
 
         // Generate multiple hashes rapidly
-        let hashes: Vec<String> = (0..10)
-            .map(|_| hasher.hash(password).unwrap())
-            .collect();
+        let hashes: Vec<String> = (0..10).map(|_| hasher.hash(password).unwrap()).collect();
 
         // All hashes should be unique (unique salts)
         for i in 0..hashes.len() {

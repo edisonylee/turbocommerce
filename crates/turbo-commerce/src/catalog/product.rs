@@ -1,9 +1,10 @@
 //! Product and variant types.
 
+use crate::catalog::InventoryLevel;
 use crate::ids::{CategoryId, MediaId, ProductId, VariantId};
 use crate::money::Money;
-use crate::catalog::InventoryLevel;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 /// Product status in the catalog.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
@@ -25,13 +26,17 @@ impl ProductStatus {
             ProductStatus::Archived => "archived",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Option<Self> {
+impl FromStr for ProductStatus {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "draft" => Some(ProductStatus::Draft),
-            "active" => Some(ProductStatus::Active),
-            "archived" => Some(ProductStatus::Archived),
-            _ => None,
+            "draft" => Ok(ProductStatus::Draft),
+            "active" => Ok(ProductStatus::Active),
+            "archived" => Ok(ProductStatus::Archived),
+            _ => Err(()),
         }
     }
 }
@@ -59,14 +64,18 @@ impl ProductType {
             ProductType::Digital => "digital",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Option<Self> {
+impl FromStr for ProductType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "simple" => Some(ProductType::Simple),
-            "variable" => Some(ProductType::Variable),
-            "bundle" => Some(ProductType::Bundle),
-            "digital" => Some(ProductType::Digital),
-            _ => None,
+            "simple" => Ok(ProductType::Simple),
+            "variable" => Ok(ProductType::Variable),
+            "bundle" => Ok(ProductType::Bundle),
+            "digital" => Ok(ProductType::Digital),
+            _ => Err(()),
         }
     }
 }
@@ -372,11 +381,8 @@ mod tests {
     #[test]
     fn test_variant_on_sale() {
         let product_id = ProductId::generate();
-        let mut variant = ProductVariant::new(
-            product_id,
-            "SKU-001",
-            Money::new(2000, Currency::USD),
-        );
+        let mut variant =
+            ProductVariant::new(product_id, "SKU-001", Money::new(2000, Currency::USD));
         variant.compare_at_price = Some(Money::new(3000, Currency::USD));
 
         assert!(variant.is_on_sale());
@@ -387,11 +393,8 @@ mod tests {
     #[test]
     fn test_variant_options() {
         let product_id = ProductId::generate();
-        let mut variant = ProductVariant::new(
-            product_id,
-            "SKU-001-L-BL",
-            Money::new(2999, Currency::USD),
-        );
+        let mut variant =
+            ProductVariant::new(product_id, "SKU-001-L-BL", Money::new(2999, Currency::USD));
         variant.add_option("Size", "Large");
         variant.add_option("Color", "Blue");
 

@@ -58,29 +58,27 @@
 pub mod prelude;
 
 // Re-export core crates
-pub use turbo_core;
-pub use turbo_router;
-pub use turbo_macros;
-pub use turbo_commerce;
 pub use turbo_auth;
+pub use turbo_commerce;
+pub use turbo_core;
+pub use turbo_macros;
+pub use turbo_router;
 
 // Re-export Leptos essentials at the top level for convenience
 pub use leptos::{view, IntoView};
-pub use leptos_meta::{provide_meta_context, Meta, Stylesheet, Title, MetaTags};
+pub use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
 
 // Re-export macros
-pub use turbo_macros::{page, api, component};
+pub use turbo_macros::{api, component, page};
 
 // Re-export router essentials
 pub use turbo_router::{
-    Route, Router, Routes,
-    use_params, use_params_map, use_query, use_query_map,
-    path,
-    RouteMeta, RouteRegistry,
+    path, use_params, use_params_map, use_query, use_query_map, Route, RouteMeta, RouteRegistry,
+    Router, Routes,
 };
 
 // Re-export core types
 pub use turbo_core::{TurboApp, TurboConfig, TurboError};
 
 #[cfg(feature = "ssr")]
-pub use turbo_core::{StreamConfig, generate_shell_html};
+pub use turbo_core::{generate_shell_html, StreamConfig};

@@ -5,7 +5,7 @@
 //! - `#[api]` - Define an API endpoint (builds on Leptos server functions)
 
 use proc_macro::TokenStream;
-use quote::{quote, format_ident};
+use quote::{format_ident, quote};
 use syn::{parse_macro_input, ItemFn, LitStr};
 
 /// Define a page component with automatic routing.

@@ -15,7 +15,10 @@ pub struct RouteMeta {
 impl RouteMeta {
     /// Create new route metadata.
     pub const fn new(path: &'static str, component_name: &'static str) -> Self {
-        Self { path, component_name }
+        Self {
+            path,
+            component_name,
+        }
     }
 
     /// Check if this route has dynamic segments.
@@ -28,13 +31,9 @@ impl RouteMeta {
         self.path
             .split('/')
             .filter_map(|segment| {
-                if segment.starts_with(':') {
-                    Some(&segment[1..])
-                } else if segment.starts_with('*') {
-                    Some(&segment[1..])
-                } else {
-                    None
-                }
+                segment
+                    .strip_prefix(':')
+                    .or_else(|| segment.strip_prefix('*'))
             })
             .collect()
     }
@@ -78,9 +77,9 @@ impl RouteEntry {
             .filter(|s| !s.is_empty())
             .map(|segment| {
                 if segment.starts_with('*') {
-                    1  // Wildcard: lowest priority
+                    1 // Wildcard: lowest priority
                 } else if segment.starts_with(':') {
-                    5  // Named param: medium priority
+                    5 // Named param: medium priority
                 } else {
                     10 // Static: highest priority
                 }

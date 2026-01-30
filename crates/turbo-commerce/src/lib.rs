@@ -40,8 +40,8 @@ pub mod error;
 pub mod ids;
 pub mod money;
 
-pub mod catalog;
 pub mod cart;
+pub mod catalog;
 pub mod checkout;
 pub mod search;
 

@@ -1,0 +1,7 @@
+error: unexpected end of input, expected string literal
+ --> tests/ui/page_missing_path.rs:5:1
+  |
+5 | #[page]
+  | ^^^^^^^
+  |
+  = note: this error originates in the attribute macro `page` (in Nightly builds, run with -Z macro-backtrace for more info)

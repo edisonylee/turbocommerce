@@ -154,7 +154,8 @@ impl Money {
     /// # Panics
     /// Panics if amount is i64::MIN.
     pub fn abs(&self) -> Self {
-        self.try_abs().expect("Cannot take absolute value of i64::MIN")
+        self.try_abs()
+            .expect("Cannot take absolute value of i64::MIN")
     }
 
     /// Negate the amount. Returns None if amount is i64::MIN.
@@ -241,7 +242,8 @@ impl Money {
     /// # Panics
     /// Panics on overflow. Prefer `try_multiply` for safe arithmetic.
     pub fn multiply(&self, factor: i64) -> Money {
-        self.try_multiply(factor).expect("Overflow in Money::multiply")
+        self.try_multiply(factor)
+            .expect("Overflow in Money::multiply")
     }
 
     /// Multiply by a decimal factor (e.g., for percentages).
@@ -260,7 +262,8 @@ impl Money {
     /// # Panics
     /// Panics if result overflows. Prefer `try_multiply_decimal` for safe arithmetic.
     pub fn multiply_decimal(&self, factor: f64) -> Money {
-        self.try_multiply_decimal(factor).expect("Overflow in Money::multiply_decimal")
+        self.try_multiply_decimal(factor)
+            .expect("Overflow in Money::multiply_decimal")
     }
 
     /// Calculate a percentage of this amount.
@@ -269,10 +272,11 @@ impl Money {
     }
 
     /// Try to sum an iterator of Money values. Returns None on overflow or currency mismatch.
-    pub fn try_sum<'a>(iter: impl Iterator<Item = &'a Money>, currency: Currency) -> Option<Money> {
-        iter.fold(Some(Money::zero(currency)), |acc, m| {
-            acc.and_then(|a| a.try_add(m))
-        })
+    pub fn try_sum<'a>(
+        mut iter: impl Iterator<Item = &'a Money>,
+        currency: Currency,
+    ) -> Option<Money> {
+        iter.try_fold(Money::zero(currency), |acc, m| acc.try_add(m))
     }
 
     /// Sum an iterator of Money values.
@@ -452,7 +456,7 @@ mod tests {
     #[test]
     fn test_safe_operations_within_bounds() {
         let a = Money::new(1_000_000_00, Currency::USD); // $1M
-        let b = Money::new(500_000_00, Currency::USD);   // $500K
+        let b = Money::new(500_000_00, Currency::USD); // $500K
 
         assert!(a.try_add(&b).is_some());
         assert!(a.try_subtract(&b).is_some());

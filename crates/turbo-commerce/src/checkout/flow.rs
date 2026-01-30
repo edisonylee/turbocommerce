@@ -1,7 +1,7 @@
 //! Checkout flow state machine.
 
-use crate::ids::{CartId, CheckoutId};
 use crate::checkout::{Address, ShippingSelection};
+use crate::ids::{CartId, CheckoutId};
 use crate::CommerceError;
 use serde::{Deserialize, Serialize};
 
@@ -118,7 +118,11 @@ impl CheckoutFlow {
             CheckoutStep::Shipping => self.email.is_some(),
             CheckoutStep::Payment => {
                 self.email.is_some()
-                    && self.shipping_address.as_ref().map(|a| a.is_complete()).unwrap_or(false)
+                    && self
+                        .shipping_address
+                        .as_ref()
+                        .map(|a| a.is_complete())
+                        .unwrap_or(false)
                     && self.shipping_method.is_some()
             }
             CheckoutStep::Review => {

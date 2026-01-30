@@ -175,7 +175,10 @@ impl SearchQuery {
     /// Build count SQL query.
     pub fn build_count_sql(&self) -> (String, Vec<String>) {
         let (where_clause, values) = self.build_where_clause();
-        let sql = format!("SELECT COUNT(*) as count FROM products WHERE {}", where_clause);
+        let sql = format!(
+            "SELECT COUNT(*) as count FROM products WHERE {}",
+            where_clause
+        );
         (sql, values)
     }
 }

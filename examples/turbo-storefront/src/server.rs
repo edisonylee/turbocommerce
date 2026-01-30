@@ -11,7 +11,10 @@ use leptos_wasi::{
 use wasi::exports::http::incoming_handler::Guest;
 use wasi::http::proxy::export;
 
-use crate::app::{shell, App, GetProducts, GetProduct, GetCart, AddToCart, ClearCart};
+use crate::app::{
+    shell, AddToCart, App, ClearCart, GetCart, GetProduct, GetProducts, RemoveCartItem,
+    UpdateCartItem,
+};
 
 struct TurboServer;
 
@@ -35,6 +38,11 @@ async fn handle_request(
     response_out: ResponseOutparam,
 ) -> Result<(), HandlerError> {
     use leptos_wasi::prelude::Handler;
+    use std::env;
+
+    if env::var("LEPTOS_OUTPUT_NAME").is_err() {
+        env::set_var("LEPTOS_OUTPUT_NAME", "turbo_storefront");
+    }
 
     let conf = get_configuration(None).unwrap();
     let leptos_options = conf.leptos_options;
@@ -45,6 +53,8 @@ async fn handle_request(
         .with_server_fn::<GetProduct>()
         .with_server_fn::<GetCart>()
         .with_server_fn::<AddToCart>()
+        .with_server_fn::<UpdateCartItem>()
+        .with_server_fn::<RemoveCartItem>()
         .with_server_fn::<ClearCart>()
         // Generate routes from App
         .generate_routes(App)

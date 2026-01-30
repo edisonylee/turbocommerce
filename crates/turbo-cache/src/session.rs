@@ -251,3 +251,94 @@ where
         format!("session:{}", id)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_session_id_new() {
+        let id = SessionId::new("abc123");
+        assert_eq!(id.as_str(), "abc123");
+    }
+
+    #[test]
+    fn test_session_id_from_string() {
+        let id = SessionId::from(String::from("xyz789"));
+        assert_eq!(id.as_str(), "xyz789");
+    }
+
+    #[test]
+    fn test_session_id_from_str() {
+        let id = SessionId::from("test-session");
+        assert_eq!(id.as_str(), "test-session");
+    }
+
+    #[test]
+    fn test_session_id_display() {
+        let id = SessionId::new("display-test");
+        assert_eq!(format!("{}", id), "display-test");
+    }
+
+    #[test]
+    fn test_session_id_generate_format() {
+        let id = SessionId::generate();
+        let s = id.as_str();
+
+        // Should start with "sess_"
+        assert!(s.starts_with("sess_"));
+
+        // Base64 encoded 18 bytes = 24 chars, plus "sess_" = 29 chars
+        assert_eq!(s.len(), 29);
+    }
+
+    #[test]
+    fn test_session_id_generate_uniqueness() {
+        let id1 = SessionId::generate();
+        let id2 = SessionId::generate();
+
+        // Two generated IDs should be different
+        assert_ne!(id1.as_str(), id2.as_str());
+    }
+
+    #[test]
+    fn test_session_id_equality() {
+        let id1 = SessionId::new("same");
+        let id2 = SessionId::new("same");
+        let id3 = SessionId::new("different");
+
+        assert_eq!(id1, id2);
+        assert_ne!(id1, id3);
+    }
+
+    #[test]
+    fn test_session_id_hash() {
+        use std::collections::HashSet;
+
+        let mut set = HashSet::new();
+        set.insert(SessionId::new("a"));
+        set.insert(SessionId::new("b"));
+        set.insert(SessionId::new("a")); // Duplicate
+
+        assert_eq!(set.len(), 2);
+    }
+
+    #[test]
+    fn test_session_id_clone() {
+        let id1 = SessionId::new("cloneable");
+        let id2 = id1.clone();
+
+        assert_eq!(id1, id2);
+    }
+
+    #[test]
+    fn test_session_id_serialization() {
+        let id = SessionId::new("serialize-me");
+        let json = serde_json::to_string(&id).unwrap();
+
+        assert_eq!(json, r#""serialize-me""#);
+
+        let deserialized: SessionId = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, id);
+    }
+}

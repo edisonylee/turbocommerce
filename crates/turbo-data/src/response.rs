@@ -73,8 +73,7 @@ impl Response {
 
     /// Get the Content-Length header.
     pub fn content_length(&self) -> Option<usize> {
-        self.header("Content-Length")
-            .and_then(|v| v.parse().ok())
+        self.header("Content-Length").and_then(|v| v.parse().ok())
     }
 
     /// Convert to a Result, returning an error for non-2xx status codes.
@@ -88,5 +87,173 @@ impl Response {
                 message,
             })
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_response(status: u16, body: &[u8]) -> Response {
+        Response::new(status, HashMap::new(), body.to_vec())
+    }
+
+    fn make_response_with_headers(
+        status: u16,
+        headers: Vec<(&str, &str)>,
+        body: &[u8],
+    ) -> Response {
+        let headers: HashMap<String, String> = headers
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        Response::new(status, headers, body.to_vec())
+    }
+
+    // === Status Check Tests ===
+
+    #[test]
+    fn test_response_is_success() {
+        assert!(make_response(200, b"").is_success());
+        assert!(make_response(201, b"").is_success());
+        assert!(make_response(299, b"").is_success());
+        assert!(!make_response(199, b"").is_success());
+        assert!(!make_response(300, b"").is_success());
+    }
+
+    #[test]
+    fn test_response_is_client_error() {
+        assert!(make_response(400, b"").is_client_error());
+        assert!(make_response(404, b"").is_client_error());
+        assert!(make_response(499, b"").is_client_error());
+        assert!(!make_response(399, b"").is_client_error());
+        assert!(!make_response(500, b"").is_client_error());
+    }
+
+    #[test]
+    fn test_response_is_server_error() {
+        assert!(make_response(500, b"").is_server_error());
+        assert!(make_response(503, b"").is_server_error());
+        assert!(make_response(599, b"").is_server_error());
+        assert!(!make_response(499, b"").is_server_error());
+        assert!(!make_response(600, b"").is_server_error());
+    }
+
+    // === Body Tests ===
+
+    #[test]
+    fn test_response_text() {
+        let resp = make_response(200, b"Hello, World!");
+        assert_eq!(resp.text().unwrap(), "Hello, World!");
+    }
+
+    #[test]
+    fn test_response_text_invalid_utf8() {
+        let resp = make_response(200, &[0xff, 0xfe]);
+        assert!(resp.text().is_err());
+    }
+
+    #[test]
+    fn test_response_json() {
+        use serde::Deserialize;
+
+        #[derive(Deserialize, Debug, PartialEq)]
+        struct Data {
+            value: i32,
+        }
+
+        let resp = make_response(200, br#"{"value": 42}"#);
+        let data: Data = resp.json().unwrap();
+        assert_eq!(data, Data { value: 42 });
+    }
+
+    #[test]
+    fn test_response_json_invalid() {
+        use serde::Deserialize;
+
+        #[derive(Deserialize)]
+        #[allow(dead_code)]
+        struct Data {
+            value: i32,
+        }
+
+        let resp = make_response(200, b"not json");
+        let result: Result<Data, _> = resp.json();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_response_bytes() {
+        let resp = make_response(200, &[1, 2, 3, 4]);
+        assert_eq!(resp.bytes(), &[1, 2, 3, 4]);
+    }
+
+    // === Header Tests ===
+
+    #[test]
+    fn test_response_header() {
+        let resp = make_response_with_headers(200, vec![("Content-Type", "application/json")], b"");
+        assert_eq!(resp.header("Content-Type"), Some("application/json"));
+    }
+
+    #[test]
+    fn test_response_header_case_insensitive() {
+        let resp = make_response_with_headers(200, vec![("Content-Type", "text/html")], b"");
+        assert_eq!(resp.header("content-type"), Some("text/html"));
+        assert_eq!(resp.header("CONTENT-TYPE"), Some("text/html"));
+    }
+
+    #[test]
+    fn test_response_header_missing() {
+        let resp = make_response(200, b"");
+        assert_eq!(resp.header("X-Missing"), None);
+    }
+
+    #[test]
+    fn test_response_content_type() {
+        let resp = make_response_with_headers(200, vec![("Content-Type", "application/json")], b"");
+        assert_eq!(resp.content_type(), Some("application/json"));
+    }
+
+    #[test]
+    fn test_response_content_length() {
+        let resp = make_response_with_headers(200, vec![("Content-Length", "42")], b"");
+        assert_eq!(resp.content_length(), Some(42));
+    }
+
+    #[test]
+    fn test_response_content_length_invalid() {
+        let resp = make_response_with_headers(200, vec![("Content-Length", "not-a-number")], b"");
+        assert_eq!(resp.content_length(), None);
+    }
+
+    // === error_for_status Tests ===
+
+    #[test]
+    fn test_response_error_for_status_success() {
+        let resp = make_response(200, b"OK");
+        assert!(resp.error_for_status().is_ok());
+    }
+
+    #[test]
+    fn test_response_error_for_status_client_error() {
+        let resp = make_response(404, b"Not Found");
+        let result = resp.error_for_status();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_response_error_for_status_server_error() {
+        let resp = make_response(500, b"Internal Server Error");
+        let result = resp.error_for_status();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_response_clone() {
+        let resp = make_response(200, b"data");
+        let cloned = resp.clone();
+        assert_eq!(cloned.status, 200);
+        assert_eq!(cloned.bytes(), b"data");
     }
 }

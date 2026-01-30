@@ -36,9 +36,9 @@
 //! }
 //! ```
 
-pub mod prelude;
 mod app;
 mod error;
+pub mod prelude;
 
 #[cfg(feature = "ssr")]
 mod server;
@@ -51,19 +51,13 @@ pub use server::*;
 
 // Re-export Leptos essentials
 pub use leptos::{
-    prelude::*,
-    view,
-    component,
-    server as leptos_server_macro,
-    IntoView,
-    suspense::Suspense,
+    component, prelude::*, server as leptos_server_macro, suspense::Suspense, view, IntoView,
 };
-pub use leptos_meta::{provide_meta_context, Meta, Stylesheet, Title, MetaTags};
+pub use leptos_meta::{provide_meta_context, Meta, MetaTags, Stylesheet, Title};
 pub use leptos_router::components::{Route, Router, Routes};
 
 // Re-export turbo-router
 pub use turbo_router::{
-    RouteMeta, RouteEntry, RouteRegistry,
-    use_params, use_params_map, use_query, use_query_map,
-    path,
+    path, use_params, use_params_map, use_query, use_query_map, RouteEntry, RouteMeta,
+    RouteRegistry,
 };

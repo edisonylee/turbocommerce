@@ -250,7 +250,8 @@ mod base64 {
             pub struct Standard;
             impl Standard {
                 pub fn encode(&self, data: &[u8]) -> String {
-                    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+                    const CHARS: &[u8] =
+                        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
                     let mut result = String::new();
                     for chunk in data.chunks(3) {
                         let b0 = chunk[0] as usize;
@@ -275,5 +276,288 @@ mod base64 {
             }
             pub static STANDARD: Standard = Standard;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // === Value Conversion Tests ===
+
+    #[test]
+    fn test_value_from_i32() {
+        let v = Value::from(42i32);
+        assert!(matches!(v, Value::Integer(42)));
+    }
+
+    #[test]
+    fn test_value_from_i64() {
+        let v = Value::from(9_999_999_999i64);
+        assert!(matches!(v, Value::Integer(9_999_999_999)));
+    }
+
+    #[test]
+    fn test_value_from_f32() {
+        let v = Value::from(3.14f32);
+        if let Value::Real(f) = v {
+            assert!((f - 3.14).abs() < 0.01);
+        } else {
+            panic!("Expected Value::Real");
+        }
+    }
+
+    #[test]
+    fn test_value_from_f64() {
+        let v = Value::from(2.718281828f64);
+        assert!(matches!(v, Value::Real(f) if (f - 2.718281828).abs() < 0.0001));
+    }
+
+    #[test]
+    fn test_value_from_str() {
+        let v = Value::from("hello");
+        assert!(matches!(v, Value::Text(s) if s == "hello"));
+    }
+
+    #[test]
+    fn test_value_from_string() {
+        let v = Value::from(String::from("world"));
+        assert!(matches!(v, Value::Text(s) if s == "world"));
+    }
+
+    #[test]
+    fn test_value_from_vec_u8() {
+        let v = Value::from(vec![1u8, 2, 3]);
+        assert!(matches!(v, Value::Blob(b) if b == vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn test_value_from_bool_true() {
+        let v = Value::from(true);
+        assert!(matches!(v, Value::Integer(1)));
+    }
+
+    #[test]
+    fn test_value_from_bool_false() {
+        let v = Value::from(false);
+        assert!(matches!(v, Value::Integer(0)));
+    }
+
+    #[test]
+    fn test_value_from_option_some() {
+        let v = Value::from(Some(42i64));
+        assert!(matches!(v, Value::Integer(42)));
+    }
+
+    #[test]
+    fn test_value_from_option_none() {
+        let v = Value::from(None::<i64>);
+        assert!(v.is_null());
+    }
+
+    // === Value Accessor Tests ===
+
+    #[test]
+    fn test_value_as_integer() {
+        let v = Value::Integer(42);
+        assert_eq!(v.as_integer(), Some(42));
+
+        let v = Value::Real(3.7);
+        assert_eq!(v.as_integer(), Some(3)); // Truncates
+
+        let v = Value::Text("hello".to_string());
+        assert_eq!(v.as_integer(), None);
+    }
+
+    #[test]
+    fn test_value_as_real() {
+        let v = Value::Real(3.14);
+        assert_eq!(v.as_real(), Some(3.14));
+
+        let v = Value::Integer(42);
+        assert_eq!(v.as_real(), Some(42.0));
+
+        let v = Value::Null;
+        assert_eq!(v.as_real(), None);
+    }
+
+    #[test]
+    fn test_value_as_text() {
+        let v = Value::Text("hello".to_string());
+        assert_eq!(v.as_text(), Some("hello"));
+
+        let v = Value::Integer(42);
+        assert_eq!(v.as_text(), None);
+    }
+
+    #[test]
+    fn test_value_as_blob() {
+        let v = Value::Blob(vec![1, 2, 3]);
+        assert_eq!(v.as_blob(), Some(&[1u8, 2, 3][..]));
+
+        let v = Value::Text("hello".to_string());
+        assert_eq!(v.as_blob(), Some(b"hello".as_slice()));
+
+        let v = Value::Null;
+        assert_eq!(v.as_blob(), None);
+    }
+
+    #[test]
+    fn test_value_is_null() {
+        assert!(Value::Null.is_null());
+        assert!(!Value::Integer(0).is_null());
+    }
+
+    // === Row Tests ===
+
+    #[test]
+    fn test_row_new_and_columns() {
+        let cols = vec!["id".to_string(), "name".to_string()];
+        let vals = vec![Value::Integer(1), Value::Text("Alice".to_string())];
+        let row = Row::new(cols.clone(), vals);
+
+        assert_eq!(row.columns(), &cols);
+    }
+
+    #[test]
+    fn test_row_get_by_name() {
+        let row = Row::new(
+            vec!["id".to_string(), "name".to_string()],
+            vec![Value::Integer(42), Value::Text("Bob".to_string())],
+        );
+
+        assert!(matches!(row.get("id"), Some(Value::Integer(42))));
+        assert!(matches!(row.get("name"), Some(Value::Text(s)) if s == "Bob"));
+        assert!(row.get("missing").is_none());
+    }
+
+    #[test]
+    fn test_row_get_by_index() {
+        let row = Row::new(
+            vec!["a".to_string(), "b".to_string()],
+            vec![Value::Integer(1), Value::Integer(2)],
+        );
+
+        assert!(matches!(row.get_index(0), Some(Value::Integer(1))));
+        assert!(matches!(row.get_index(1), Some(Value::Integer(2))));
+        assert!(row.get_index(2).is_none());
+    }
+
+    #[test]
+    fn test_row_to_map() {
+        let row = Row::new(
+            vec!["x".to_string(), "y".to_string()],
+            vec![Value::Integer(10), Value::Integer(20)],
+        );
+
+        let map = row.to_map();
+        assert_eq!(map.len(), 2);
+        assert!(matches!(map.get("x"), Some(Value::Integer(10))));
+    }
+
+    #[test]
+    fn test_row_deserialize() {
+        use serde::Deserialize;
+
+        #[derive(Deserialize, Debug, PartialEq)]
+        struct Person {
+            id: i64,
+            name: String,
+        }
+
+        let row = Row::new(
+            vec!["id".to_string(), "name".to_string()],
+            vec![Value::Integer(1), Value::Text("Alice".to_string())],
+        );
+
+        let person: Person = row.deserialize().unwrap();
+        assert_eq!(
+            person,
+            Person {
+                id: 1,
+                name: "Alice".to_string()
+            }
+        );
+    }
+
+    // === QueryResult Tests ===
+
+    #[test]
+    fn test_query_result_empty() {
+        let result = QueryResult::new(vec!["id".to_string()], vec![]);
+        assert!(result.is_empty());
+        assert_eq!(result.len(), 0);
+        assert!(result.first().is_none());
+    }
+
+    #[test]
+    fn test_query_result_with_rows() {
+        let cols = vec!["id".to_string()];
+        let rows = vec![
+            Row::new(cols.clone(), vec![Value::Integer(1)]),
+            Row::new(cols.clone(), vec![Value::Integer(2)]),
+        ];
+        let result = QueryResult::new(cols, rows);
+
+        assert!(!result.is_empty());
+        assert_eq!(result.len(), 2);
+        assert!(result.first().is_some());
+    }
+
+    #[test]
+    fn test_query_result_iter() {
+        let cols = vec!["v".to_string()];
+        let rows = vec![
+            Row::new(cols.clone(), vec![Value::Integer(1)]),
+            Row::new(cols.clone(), vec![Value::Integer(2)]),
+            Row::new(cols.clone(), vec![Value::Integer(3)]),
+        ];
+        let result = QueryResult::new(cols, rows);
+
+        let count = result.iter().count();
+        assert_eq!(count, 3);
+    }
+
+    #[test]
+    fn test_query_result_deserialize_all() {
+        use serde::Deserialize;
+
+        #[derive(Deserialize, Debug, PartialEq)]
+        struct Item {
+            value: i64,
+        }
+
+        let cols = vec!["value".to_string()];
+        let rows = vec![
+            Row::new(cols.clone(), vec![Value::Integer(10)]),
+            Row::new(cols.clone(), vec![Value::Integer(20)]),
+        ];
+        let result = QueryResult::new(cols, rows);
+
+        let items: Vec<Item> = result.deserialize_all().unwrap();
+        assert_eq!(items, vec![Item { value: 10 }, Item { value: 20 }]);
+    }
+
+    // === Base64 Encoding Tests ===
+
+    #[test]
+    fn test_base64_encode_hello() {
+        let encoded = base64::engine::general_purpose::STANDARD.encode(b"Hello");
+        assert_eq!(encoded, "SGVsbG8=");
+    }
+
+    #[test]
+    fn test_base64_encode_padding() {
+        // "a" -> "YQ==" (2 padding chars)
+        let encoded = base64::engine::general_purpose::STANDARD.encode(b"a");
+        assert_eq!(encoded, "YQ==");
+
+        // "ab" -> "YWI=" (1 padding char)
+        let encoded = base64::engine::general_purpose::STANDARD.encode(b"ab");
+        assert_eq!(encoded, "YWI=");
+
+        // "abc" -> "YWJj" (no padding)
+        let encoded = base64::engine::general_purpose::STANDARD.encode(b"abc");
+        assert_eq!(encoded, "YWJj");
     }
 }

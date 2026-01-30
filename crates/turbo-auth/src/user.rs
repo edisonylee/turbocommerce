@@ -1,12 +1,14 @@
 //! User types.
 
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use turbo_commerce::ids::UserId;
 
 /// User role for authorization.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum Role {
     /// Regular customer.
+    #[default]
     Customer,
     /// Store staff with limited admin access.
     Staff,
@@ -27,17 +29,6 @@ impl Role {
         }
     }
 
-    /// Parse role from string.
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "customer" => Some(Role::Customer),
-            "staff" => Some(Role::Staff),
-            "admin" => Some(Role::Admin),
-            "super_admin" => Some(Role::SuperAdmin),
-            _ => None,
-        }
-    }
-
     /// Check if this role has at least the given permission level.
     pub fn has_permission(&self, required: Role) -> bool {
         self.level() >= required.level()
@@ -54,9 +45,17 @@ impl Role {
     }
 }
 
-impl Default for Role {
-    fn default() -> Self {
-        Role::Customer
+impl FromStr for Role {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "customer" => Ok(Role::Customer),
+            "staff" => Ok(Role::Staff),
+            "admin" => Ok(Role::Admin),
+            "super_admin" => Ok(Role::SuperAdmin),
+            _ => Err(()),
+        }
     }
 }
 
@@ -136,9 +135,7 @@ impl User {
     /// Get display name.
     pub fn display_name(&self) -> &str {
         match self {
-            User::Authenticated { name, email, .. } => {
-                name.as_deref().unwrap_or(email.as_str())
-            }
+            User::Authenticated { name, email, .. } => name.as_deref().unwrap_or(email.as_str()),
             User::Anonymous { session_id } => session_id,
         }
     }
@@ -153,7 +150,7 @@ impl User {
 
     /// Check if user has a specific role.
     pub fn has_role(&self, role: Role) -> bool {
-        self.roles().iter().any(|r| *r == role)
+        self.roles().contains(&role)
     }
 
     /// Check if user has at least the given permission level.
@@ -199,7 +196,11 @@ pub struct UserCredentials {
 
 impl UserCredentials {
     /// Create new credentials.
-    pub fn new(user_id: UserId, email: impl Into<String>, password_hash: impl Into<String>) -> Self {
+    pub fn new(
+        user_id: UserId,
+        email: impl Into<String>,
+        password_hash: impl Into<String>,
+    ) -> Self {
         let now = current_timestamp();
         Self {
             user_id,

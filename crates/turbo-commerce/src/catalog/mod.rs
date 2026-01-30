@@ -2,10 +2,12 @@
 //!
 //! Contains types for products, variants, categories, and inventory.
 
-mod product;
 mod category;
 mod inventory;
+mod product;
 
-pub use product::{Product, ProductMedia, ProductStatus, ProductType, ProductVariant, VariantOption, MediaType};
 pub use category::Category;
-pub use inventory::{InventoryLevel, InventoryAdjustment, AdjustmentReason};
+pub use inventory::{AdjustmentReason, InventoryAdjustment, InventoryLevel};
+pub use product::{
+    MediaType, Product, ProductMedia, ProductStatus, ProductType, ProductVariant, VariantOption,
+};

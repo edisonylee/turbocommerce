@@ -1,6 +1,6 @@
 //! Database connection and query execution.
 
-use crate::{DbError, QueryResult, Value};
+use crate::{DbError, QueryResult, Row, Value};
 use serde::de::DeserializeOwned;
 
 /// SQLite database connection.
@@ -145,7 +145,11 @@ impl Db {
     /// )?;
     /// ```
     #[cfg(target_arch = "wasm32")]
-    pub fn query_as<T: DeserializeOwned>(&self, sql: &str, params: &[Value]) -> Result<Vec<T>, DbError> {
+    pub fn query_as<T: DeserializeOwned>(
+        &self,
+        sql: &str,
+        params: &[Value],
+    ) -> Result<Vec<T>, DbError> {
         let result = self.query(sql, params)?;
         result.deserialize_all()
     }
@@ -163,12 +167,13 @@ impl Db {
     /// )?;
     /// ```
     #[cfg(target_arch = "wasm32")]
-    pub fn query_one<T: DeserializeOwned>(&self, sql: &str, params: &[Value]) -> Result<T, DbError> {
+    pub fn query_one<T: DeserializeOwned>(
+        &self,
+        sql: &str,
+        params: &[Value],
+    ) -> Result<T, DbError> {
         let result = self.query(sql, params)?;
-        result
-            .first()
-            .ok_or(DbError::NotFound)?
-            .deserialize()
+        result.first().ok_or(DbError::NotFound)?.deserialize()
     }
 
     /// Execute a SQL query and return an optional single row.
@@ -184,7 +189,11 @@ impl Db {
     /// )?;
     /// ```
     #[cfg(target_arch = "wasm32")]
-    pub fn query_optional<T: DeserializeOwned>(&self, sql: &str, params: &[Value]) -> Result<Option<T>, DbError> {
+    pub fn query_optional<T: DeserializeOwned>(
+        &self,
+        sql: &str,
+        params: &[Value],
+    ) -> Result<Option<T>, DbError> {
         let result = self.query(sql, params)?;
         match result.first() {
             Some(row) => Ok(Some(row.deserialize()?)),
@@ -218,17 +227,29 @@ impl Db {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn query_as<T: DeserializeOwned>(&self, _sql: &str, _params: &[Value]) -> Result<Vec<T>, DbError> {
+    pub fn query_as<T: DeserializeOwned>(
+        &self,
+        _sql: &str,
+        _params: &[Value],
+    ) -> Result<Vec<T>, DbError> {
         Ok(vec![])
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn query_one<T: DeserializeOwned>(&self, _sql: &str, _params: &[Value]) -> Result<T, DbError> {
+    pub fn query_one<T: DeserializeOwned>(
+        &self,
+        _sql: &str,
+        _params: &[Value],
+    ) -> Result<T, DbError> {
         Err(DbError::NotFound)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn query_optional<T: DeserializeOwned>(&self, _sql: &str, _params: &[Value]) -> Result<Option<T>, DbError> {
+    pub fn query_optional<T: DeserializeOwned>(
+        &self,
+        _sql: &str,
+        _params: &[Value],
+    ) -> Result<Option<T>, DbError> {
         Ok(None)
     }
 }

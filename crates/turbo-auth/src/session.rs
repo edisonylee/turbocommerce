@@ -177,7 +177,9 @@ impl AuthSession {
     /// Upgrade anonymous session to authenticated.
     pub fn upgrade(&mut self, user: User) -> Result<(), AuthError> {
         if !self.user.is_anonymous() {
-            return Err(AuthError::Internal("Session already authenticated".to_string()));
+            return Err(AuthError::Internal(
+                "Session already authenticated".to_string(),
+            ));
         }
         self.user = user;
         self.regenerate_csrf();

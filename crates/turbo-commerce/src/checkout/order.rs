@@ -1,9 +1,9 @@
 //! Order types.
 
+use crate::cart::LineItemProperty;
+use crate::checkout::{Address, ShippingSelection};
 use crate::ids::{OrderId, OrderLineItemId, ProductId, UserId, VariantId};
 use crate::money::{Currency, Money};
-use crate::checkout::{Address, ShippingSelection};
-use crate::cart::LineItemProperty;
 use serde::{Deserialize, Serialize};
 
 /// Order status.
@@ -300,8 +300,8 @@ mod tests {
     #[test]
     fn test_order_number_generation() {
         let num1 = Order::generate_order_number();
-        let num2 = Order::generate_order_number();
+        let _num2 = Order::generate_order_number();
         assert!(num1.starts_with("ORD-"));
-        // Numbers should be unique (or at least different in most cases)
+        // Note: num2 generated to verify function can be called multiple times
     }
 }

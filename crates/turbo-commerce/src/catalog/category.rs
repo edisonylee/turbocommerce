@@ -54,11 +54,7 @@ impl Category {
     }
 
     /// Create a new child category.
-    pub fn new_child(
-        parent: &Category,
-        name: impl Into<String>,
-        slug: impl Into<String>,
-    ) -> Self {
+    pub fn new_child(parent: &Category, name: impl Into<String>, slug: impl Into<String>) -> Self {
         let id = CategoryId::generate();
         let now = current_timestamp();
         Self {

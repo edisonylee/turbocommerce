@@ -23,14 +23,9 @@ pub enum Filter {
     /// Filter by multiple tags (OR).
     Tags(Vec<String>),
     /// Filter by attribute/option (e.g., Color: Blue).
-    Attribute {
-        name: String,
-        values: Vec<String>,
-    },
+    Attribute { name: String, values: Vec<String> },
     /// Filter by minimum rating.
-    Rating {
-        min: f64,
-    },
+    Rating { min: f64 },
     /// Filter by product type.
     ProductType(String),
     /// Filter by product status.
@@ -84,9 +79,7 @@ impl Filter {
     /// Build SQL WHERE clause component.
     pub fn to_sql(&self) -> (String, Vec<String>) {
         match self {
-            Filter::Category(id) => {
-                ("category_id = ?".to_string(), vec![id.as_str().to_string()])
-            }
+            Filter::Category(id) => ("category_id = ?".to_string(), vec![id.as_str().to_string()]),
             Filter::Categories(ids) => {
                 let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
                 let values = ids.iter().map(|id| id.as_str().to_string()).collect();
@@ -106,28 +99,27 @@ impl Filter {
                 (clauses.join(" AND "), values)
             }
             Filter::InStock => ("quantity > 0".to_string(), vec![]),
-            Filter::Tag(tag) => {
-                ("id IN (SELECT product_id FROM product_tags WHERE tag = ?)".to_string(), vec![tag.clone()])
-            }
+            Filter::Tag(tag) => (
+                "id IN (SELECT product_id FROM product_tags WHERE tag = ?)".to_string(),
+                vec![tag.clone()],
+            ),
             Filter::Tags(tags) => {
                 let placeholders = tags.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
                 (
-                    format!("id IN (SELECT product_id FROM product_tags WHERE tag IN ({}))", placeholders),
+                    format!(
+                        "id IN (SELECT product_id FROM product_tags WHERE tag IN ({}))",
+                        placeholders
+                    ),
                     tags.clone(),
                 )
             }
-            Filter::Text(query) => {
-                ("(name LIKE ? OR description LIKE ?)".to_string(), vec![format!("%{}%", query), format!("%{}%", query)])
-            }
-            Filter::Status(status) => {
-                ("status = ?".to_string(), vec![status.clone()])
-            }
-            Filter::ProductType(pt) => {
-                ("product_type = ?".to_string(), vec![pt.clone()])
-            }
-            Filter::SkuPrefix(prefix) => {
-                ("sku LIKE ?".to_string(), vec![format!("{}%", prefix)])
-            }
+            Filter::Text(query) => (
+                "(name LIKE ? OR description LIKE ?)".to_string(),
+                vec![format!("%{}%", query), format!("%{}%", query)],
+            ),
+            Filter::Status(status) => ("status = ?".to_string(), vec![status.clone()]),
+            Filter::ProductType(pt) => ("product_type = ?".to_string(), vec![pt.clone()]),
+            Filter::SkuPrefix(prefix) => ("sku LIKE ?".to_string(), vec![format!("{}%", prefix)]),
             _ => ("1=1".to_string(), vec![]), // No-op for unsupported filters
         }
     }

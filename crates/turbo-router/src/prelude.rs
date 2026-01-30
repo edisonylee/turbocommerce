@@ -5,8 +5,6 @@
 //! ```
 
 pub use crate::{
-    RouteMeta, RouteEntry, RouteRegistry,
-    Route, Router, Routes,
-    use_params, use_params_map, use_query, use_query_map,
-    path,
+    path, use_params, use_params_map, use_query, use_query_map, Route, RouteEntry, RouteMeta,
+    RouteRegistry, Router, Routes,
 };

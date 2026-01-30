@@ -120,3 +120,145 @@ impl TurboApp {
         (self.config, self.routes)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // === TurboConfig Tests ===
+
+    #[test]
+    fn test_turbo_config_default() {
+        let config = TurboConfig::default();
+
+        assert_eq!(config.name, "TurboApp");
+        assert!(config.streaming);
+        assert_eq!(config.default_title, "TurboCommerce");
+        assert!(config.css_path.is_none());
+    }
+
+    #[test]
+    fn test_turbo_config_new() {
+        let config = TurboConfig::new("MyStore");
+
+        assert_eq!(config.name, "MyStore");
+        assert!(config.streaming); // Default
+    }
+
+    #[test]
+    fn test_turbo_config_with_title() {
+        let config = TurboConfig::new("App").with_title("Custom Title");
+
+        assert_eq!(config.default_title, "Custom Title");
+    }
+
+    #[test]
+    fn test_turbo_config_with_css() {
+        let config = TurboConfig::new("App").with_css("/styles/main.css");
+
+        assert_eq!(config.css_path, Some("/styles/main.css".to_string()));
+    }
+
+    #[test]
+    fn test_turbo_config_with_streaming() {
+        let config = TurboConfig::new("App").with_streaming(false);
+
+        assert!(!config.streaming);
+    }
+
+    #[test]
+    fn test_turbo_config_builder_chain() {
+        let config = TurboConfig::new("Shop")
+            .with_title("My Shop")
+            .with_css("/pkg/style.css")
+            .with_streaming(true);
+
+        assert_eq!(config.name, "Shop");
+        assert_eq!(config.default_title, "My Shop");
+        assert_eq!(config.css_path, Some("/pkg/style.css".to_string()));
+        assert!(config.streaming);
+    }
+
+    #[test]
+    fn test_turbo_config_clone() {
+        let config = TurboConfig::new("App")
+            .with_title("Title")
+            .with_css("/style.css");
+
+        let cloned = config.clone();
+        assert_eq!(cloned.name, config.name);
+        assert_eq!(cloned.default_title, config.default_title);
+    }
+
+    // === TurboApp Tests ===
+
+    #[test]
+    fn test_turbo_app_new() {
+        let app = TurboApp::new("TestApp");
+
+        assert_eq!(app.config().name, "TestApp");
+        assert!(app.routes().routes().is_empty());
+    }
+
+    #[test]
+    fn test_turbo_app_with_title() {
+        let app = TurboApp::new("App").with_title("Custom Title");
+
+        assert_eq!(app.config().default_title, "Custom Title");
+    }
+
+    #[test]
+    fn test_turbo_app_with_css() {
+        let app = TurboApp::new("App").with_css("/pkg/style.css");
+
+        assert_eq!(app.config().css_path, Some("/pkg/style.css".to_string()));
+    }
+
+    #[test]
+    fn test_turbo_app_with_streaming() {
+        let app = TurboApp::new("App").with_streaming(false);
+
+        assert!(!app.config().streaming);
+    }
+
+    #[test]
+    fn test_turbo_app_route() {
+        let app = TurboApp::new("App")
+            .route("/", "HomePage")
+            .route("/about", "AboutPage");
+
+        let routes = app.routes().routes();
+        assert_eq!(routes.len(), 2);
+    }
+
+    #[test]
+    fn test_turbo_app_build() {
+        let app = TurboApp::new("BuildTest")
+            .with_title("Test")
+            .route("/", "Home");
+
+        let (config, routes) = app.build();
+
+        assert_eq!(config.name, "BuildTest");
+        assert_eq!(config.default_title, "Test");
+        assert_eq!(routes.routes().len(), 1);
+    }
+
+    #[test]
+    fn test_turbo_app_full_builder() {
+        let (config, routes) = TurboApp::new("E-Commerce")
+            .with_title("My Store")
+            .with_css("/assets/style.css")
+            .with_streaming(true)
+            .route("/", "Home")
+            .route("/products", "Products")
+            .route("/cart", "Cart")
+            .build();
+
+        assert_eq!(config.name, "E-Commerce");
+        assert_eq!(config.default_title, "My Store");
+        assert_eq!(config.css_path, Some("/assets/style.css".to_string()));
+        assert!(config.streaming);
+        assert_eq!(routes.routes().len(), 3);
+    }
+}

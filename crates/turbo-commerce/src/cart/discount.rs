@@ -229,7 +229,8 @@ impl Discount {
 
     /// Add a minimum purchase condition.
     pub fn with_minimum_purchase(mut self, amount: Money) -> Self {
-        self.conditions.push(DiscountCondition::MinimumPurchase(amount));
+        self.conditions
+            .push(DiscountCondition::MinimumPurchase(amount));
         self
     }
 
@@ -301,11 +302,7 @@ mod tests {
 
     #[test]
     fn test_fixed_discount() {
-        let discount = Discount::fixed_amount(
-            "SAVE5",
-            "$5 Off",
-            Money::new(500, Currency::USD),
-        );
+        let discount = Discount::fixed_amount("SAVE5", "$5 Off", Money::new(500, Currency::USD));
         let subtotal = Money::new(10000, Currency::USD);
         let amount = discount.value.calculate(&subtotal);
         assert_eq!(amount.amount_cents, 500);
@@ -313,11 +310,8 @@ mod tests {
 
     #[test]
     fn test_fixed_discount_capped() {
-        let discount = Discount::fixed_amount(
-            "SAVE100",
-            "$100 Off",
-            Money::new(10000, Currency::USD),
-        );
+        let discount =
+            Discount::fixed_amount("SAVE100", "$100 Off", Money::new(10000, Currency::USD));
         let subtotal = Money::new(5000, Currency::USD);
         let amount = discount.value.calculate(&subtotal);
         // Capped at subtotal
@@ -335,8 +329,7 @@ mod tests {
 
     #[test]
     fn test_discount_usage_limit() {
-        let mut discount = Discount::percentage("TEST", "Test", 10.0)
-            .with_usage_limit(5);
+        let mut discount = Discount::percentage("TEST", "Test", 10.0).with_usage_limit(5);
 
         discount.usage_count = 4;
         assert!(discount.is_valid());

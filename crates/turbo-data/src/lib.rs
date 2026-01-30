@@ -83,11 +83,7 @@ impl FetchClient {
     }
 
     /// Add a default header that will be included in all requests.
-    pub fn with_default_header(
-        mut self,
-        key: impl Into<String>,
-        value: impl Into<String>,
-    ) -> Self {
+    pub fn with_default_header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.default_headers.insert(key.into(), value.into());
         self
     }
@@ -206,13 +202,15 @@ impl ClientRequestBuilder {
         }
 
         let request = if let Some(body) = self.builder.body {
-            request.body(body).map_err(|e| FetchError::RequestError(e.to_string()))?
+            request
+                .body(body)
+                .map_err(|e| FetchError::RequestError(e.to_string()))?
         } else {
             request.build()
         };
 
-        let response = spin_sdk::http::send(request)
-            .map_err(|e| FetchError::RequestError(e.to_string()))?;
+        let response =
+            spin_sdk::http::send(request).map_err(|e| FetchError::RequestError(e.to_string()))?;
 
         let status = response.status();
         let headers: std::collections::HashMap<String, String> = response

@@ -13,28 +13,21 @@
 //! - Macros: `#[page]`, `#[api]`, `#[component]`
 
 // Leptos view macro and core traits
-pub use leptos::{
-    prelude::*,
-    view,
-    IntoView,
-    suspense::Suspense,
-};
+pub use leptos::{prelude::*, suspense::Suspense, view, IntoView};
 
 // Meta tags
 pub use leptos_meta::{provide_meta_context, Meta, Stylesheet, Title};
 
 // Router
 pub use turbo_router::{
-    Route, Router, Routes,
-    use_params, use_params_map, use_query, use_query_map,
-    path,
+    path, use_params, use_params_map, use_query, use_query_map, Route, Router, Routes,
 };
 
 // Macros
-pub use turbo_macros::{page, api, component};
+pub use turbo_macros::{api, component, page};
 
 // Core types
 pub use turbo_core::{TurboApp, TurboConfig, TurboError};
 
 #[cfg(feature = "ssr")]
-pub use turbo_core::{StreamConfig, generate_shell_html};
+pub use turbo_core::{generate_shell_html, StreamConfig};

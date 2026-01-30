@@ -89,10 +89,7 @@ mod tests {
 
     #[test]
     fn test_shipping_method() {
-        let mut method = ShippingMethod::new(
-            "Standard Shipping",
-            Money::new(599, Currency::USD),
-        );
+        let mut method = ShippingMethod::new("Standard Shipping", Money::new(599, Currency::USD));
         method.min_delivery_days = Some(5);
         method.max_delivery_days = Some(7);
 
@@ -102,10 +99,7 @@ mod tests {
 
     #[test]
     fn test_free_shipping() {
-        let method = ShippingMethod::new(
-            "Free Shipping",
-            Money::zero(Currency::USD),
-        );
+        let method = ShippingMethod::new("Free Shipping", Money::zero(Currency::USD));
         assert!(method.is_free());
     }
 }

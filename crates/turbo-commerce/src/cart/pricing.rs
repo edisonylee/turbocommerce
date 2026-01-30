@@ -66,10 +66,7 @@ impl LineItemPricing {
         if self.quantity == 0 {
             return self.unit_price;
         }
-        Money::new(
-            self.total.amount_cents / self.quantity,
-            self.total.currency,
-        )
+        Money::new(self.total.amount_cents / self.quantity, self.total.currency)
     }
 }
 

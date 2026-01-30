@@ -24,11 +24,7 @@ use leptos::config::LeptosOptions;
 /// }
 /// ```
 #[cfg(feature = "ssr")]
-pub fn generate_shell_html(
-    app_name: &str,
-    css_path: Option<&str>,
-    body_html: &str,
-) -> String {
+pub fn generate_shell_html(app_name: &str, css_path: Option<&str>, body_html: &str) -> String {
     let css_link = css_path
         .map(|p| format!(r#"<link rel="stylesheet" href="{}">"#, p))
         .unwrap_or_default();

@@ -1,9 +1,9 @@
 //! Cart and line item types.
 
+use crate::cart::{AppliedDiscount, CartPricing, LineItemPricing};
 use crate::error::CommerceError;
 use crate::ids::{CartId, LineItemId, ProductId, UserId, VariantId};
 use crate::money::{Currency, Money};
-use crate::cart::{AppliedDiscount, CartPricing, LineItemPricing};
 use serde::{Deserialize, Serialize};
 
 /// Maximum quantity allowed per line item.
@@ -83,12 +83,16 @@ impl Cart {
 
         // Check if item already exists
         if let Some(existing) = self.items.iter_mut().find(|i| i.variant_id == variant_id) {
-            let new_quantity = existing.quantity
+            let new_quantity = existing
+                .quantity
                 .checked_add(quantity)
                 .ok_or(CommerceError::Overflow)?;
 
             if new_quantity > MAX_QUANTITY_PER_ITEM {
-                return Err(CommerceError::QuantityExceedsLimit(new_quantity, MAX_QUANTITY_PER_ITEM));
+                return Err(CommerceError::QuantityExceedsLimit(
+                    new_quantity,
+                    MAX_QUANTITY_PER_ITEM,
+                ));
             }
 
             existing.quantity = new_quantity;
@@ -99,7 +103,10 @@ impl Cart {
 
         // Validate new item quantity
         if quantity > MAX_QUANTITY_PER_ITEM {
-            return Err(CommerceError::QuantityExceedsLimit(quantity, MAX_QUANTITY_PER_ITEM));
+            return Err(CommerceError::QuantityExceedsLimit(
+                quantity,
+                MAX_QUANTITY_PER_ITEM,
+            ));
         }
 
         // Add new item
@@ -114,13 +121,20 @@ impl Cart {
     ///
     /// If quantity is <= 0, removes the item.
     /// Returns error if quantity exceeds limit or would cause overflow.
-    pub fn update_quantity(&mut self, line_item_id: &LineItemId, quantity: i64) -> Result<bool, CommerceError> {
+    pub fn update_quantity(
+        &mut self,
+        line_item_id: &LineItemId,
+        quantity: i64,
+    ) -> Result<bool, CommerceError> {
         if quantity <= 0 {
             return Ok(self.remove_item(line_item_id));
         }
 
         if quantity > MAX_QUANTITY_PER_ITEM {
-            return Err(CommerceError::QuantityExceedsLimit(quantity, MAX_QUANTITY_PER_ITEM));
+            return Err(CommerceError::QuantityExceedsLimit(
+                quantity,
+                MAX_QUANTITY_PER_ITEM,
+            ));
         }
 
         if let Some(item) = self.items.iter_mut().find(|i| &i.id == line_item_id) {
@@ -213,21 +227,19 @@ impl Cart {
             })
             .collect();
 
-        let subtotal = Money::try_sum(
-            self.items.iter().map(|i| &i.total_price),
-            self.currency,
-        ).ok_or(CommerceError::Overflow)?;
+        let subtotal = Money::try_sum(self.items.iter().map(|i| &i.total_price), self.currency)
+            .ok_or(CommerceError::Overflow)?;
 
-        let discount_total = Money::try_sum(
-            self.discounts.iter().map(|d| &d.amount),
-            self.currency,
-        ).ok_or(CommerceError::Overflow)?;
+        let discount_total =
+            Money::try_sum(self.discounts.iter().map(|d| &d.amount), self.currency)
+                .ok_or(CommerceError::Overflow)?;
 
-        let grand_total = subtotal.try_subtract(&discount_total)
-            .ok_or_else(|| CommerceError::CurrencyMismatch {
+        let grand_total = subtotal.try_subtract(&discount_total).ok_or_else(|| {
+            CommerceError::CurrencyMismatch {
                 expected: self.currency.code().to_string(),
                 got: "mixed".to_string(),
-            })?;
+            }
+        })?;
 
         Ok(CartPricing {
             subtotal,
@@ -244,10 +256,14 @@ impl Cart {
     /// Items that would exceed quantity limits are capped at MAX_QUANTITY_PER_ITEM.
     pub fn merge(&mut self, other: Cart) -> Result<(), CommerceError> {
         for item in other.items {
-            if let Some(existing) = self.items.iter_mut().find(|i| i.variant_id == item.variant_id)
+            if let Some(existing) = self
+                .items
+                .iter_mut()
+                .find(|i| i.variant_id == item.variant_id)
             {
                 // Use saturating add and cap at max
-                let new_quantity = existing.quantity
+                let new_quantity = existing
+                    .quantity
                     .saturating_add(item.quantity)
                     .min(MAX_QUANTITY_PER_ITEM);
                 existing.quantity = new_quantity;
@@ -305,7 +321,9 @@ impl LineItem {
         quantity: i64,
         unit_price: Money,
     ) -> Result<Self, CommerceError> {
-        let total_price = unit_price.try_multiply(quantity).ok_or(CommerceError::Overflow)?;
+        let total_price = unit_price
+            .try_multiply(quantity)
+            .ok_or(CommerceError::Overflow)?;
         Ok(Self {
             id: LineItemId::generate(),
             variant_id,
@@ -321,7 +339,10 @@ impl LineItem {
 
     /// Update the total price based on quantity.
     pub fn update_total(&mut self) -> Result<(), CommerceError> {
-        self.total_price = self.unit_price.try_multiply(self.quantity).ok_or(CommerceError::Overflow)?;
+        self.total_price = self
+            .unit_price
+            .try_multiply(self.quantity)
+            .ok_or(CommerceError::Overflow)?;
         Ok(())
     }
 
@@ -372,7 +393,8 @@ mod tests {
             "Test Product",
             2,
             Money::new(1000, Currency::USD),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(cart.item_count(), 2);
         assert_eq!(cart.unique_item_count(), 1);
@@ -389,7 +411,8 @@ mod tests {
             "Test Product",
             1,
             Money::new(1000, Currency::USD),
-        ).unwrap();
+        )
+        .unwrap();
 
         cart.add_item(
             variant_id.clone(),
@@ -397,7 +420,8 @@ mod tests {
             "Test Product",
             2,
             Money::new(1000, Currency::USD),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(cart.unique_item_count(), 1);
         assert_eq!(cart.item_count(), 3);
@@ -406,13 +430,15 @@ mod tests {
     #[test]
     fn test_update_quantity() {
         let mut cart = Cart::new("session-123");
-        let line_id = cart.add_item(
-            VariantId::new("var-1"),
-            ProductId::new("prod-1"),
-            "Test Product",
-            1,
-            Money::new(1000, Currency::USD),
-        ).unwrap();
+        let line_id = cart
+            .add_item(
+                VariantId::new("var-1"),
+                ProductId::new("prod-1"),
+                "Test Product",
+                1,
+                Money::new(1000, Currency::USD),
+            )
+            .unwrap();
 
         cart.update_quantity(&line_id, 5).unwrap();
         assert_eq!(cart.item_count(), 5);
@@ -421,13 +447,15 @@ mod tests {
     #[test]
     fn test_remove_item() {
         let mut cart = Cart::new("session-123");
-        let line_id = cart.add_item(
-            VariantId::new("var-1"),
-            ProductId::new("prod-1"),
-            "Test Product",
-            1,
-            Money::new(1000, Currency::USD),
-        ).unwrap();
+        let line_id = cart
+            .add_item(
+                VariantId::new("var-1"),
+                ProductId::new("prod-1"),
+                "Test Product",
+                1,
+                Money::new(1000, Currency::USD),
+            )
+            .unwrap();
 
         assert!(cart.remove_item(&line_id));
         assert!(cart.is_empty());
@@ -442,14 +470,16 @@ mod tests {
             "Product A",
             2,
             Money::new(1000, Currency::USD),
-        ).unwrap();
+        )
+        .unwrap();
         cart.add_item(
             VariantId::new("var-2"),
             ProductId::new("prod-2"),
             "Product B",
             1,
             Money::new(2000, Currency::USD),
-        ).unwrap();
+        )
+        .unwrap();
 
         let pricing = cart.calculate_pricing().unwrap();
         assert_eq!(pricing.subtotal.amount_cents, 4000); // 2*1000 + 1*2000
