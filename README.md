@@ -6,6 +6,28 @@ A WASM-native, pure Rust e-commerce framework built on [Leptos](https://leptos.d
 
 TurboCommerce is an experimental framework for building e-commerce storefronts that run entirely on WebAssembly. It targets edge compute platforms like [Fermyon Cloud](https://www.fermyon.com/cloud) with sub-millisecond cold starts.
 
+## Status
+
+This repo is **early-stage and experimental**. It’s a working prototype that proves:
+- Rust-only SSR + hydration on WASM (Spin)
+- Server functions with SQLite + KV storage
+- A real storefront flow (products, cart, checkout wiring)
+
+## What Works
+
+- Leptos SSR + hydration on Spin/WASI
+- Product list + product detail pages
+- Cart add/update/remove/clear
+- SQLite data layer + KV cart storage
+- Static assets served by Spin fileserver
+
+## What’s Missing (Roadmap)
+
+- One-command dev server with watch mode
+- File-based routing (auto discovery)
+- More robust data migrations
+- Production-grade observability and tooling
+
 ## Architecture
 
 ```
@@ -57,6 +79,17 @@ TurboCommerce is an experimental framework for building e-commerce storefronts t
 - wasm32 targets: `rustup target add wasm32-unknown-unknown wasm32-wasip1`
 
 ### Run the Example Storefront
+
+```bash
+# One-command dev (builds client+server and runs Spin)
+./scripts/turbo dev
+```
+
+### Live Demo
+
+Example deployment on Fermyon Cloud: `https://turbo-storefront-ge7xdyyk.fermyon.app/`
+
+Or manually:
 
 ```bash
 cd examples/turbo-storefront
@@ -180,13 +213,7 @@ let total = price.multiply(quantity);
 
 ## Status
 
-This is an experimental project. It demonstrates:
-
-- Server-side rendering with Leptos on WASM
-- SQLite and KV storage via Spin SDK
-- Type-safe e-commerce domain modeling in Rust
-- Sub-millisecond cold starts on edge compute
-- Production-grade security practices
+This is an experimental project. It demonstrates server-side rendering with Leptos on WASM, SQLite/KV storage via Spin, and type-safe e-commerce domain modeling in Rust.
 
 ## License
 
